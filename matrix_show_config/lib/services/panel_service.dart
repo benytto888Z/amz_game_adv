@@ -93,18 +93,34 @@ class PanelService {
     } catch (_) { await close(); rethrow; }
   }
 
-  Future<Map<String,dynamic>> _request(String type, {Map<String,int>? config}) async {
+  Future<Map<String,dynamic>> _request(String type, {Map<String,dynamic>? config, String? action}) async {
     final socket=_socket;
     if(socket==null || socket.readyState!=WebSocket.open) throw const PanelException('disconnected');
     final id='req${++_nextId}';
     final completer=Completer<Map<String,dynamic>>();
     _pending[id]=completer;
     try {
-      socket.add(jsonEncode({'type':type,'id':id,if(config!=null) 'config':config}));
+      socket.add(jsonEncode({'type':type,'id':id,if(config!=null) 'config':config,if(action!=null) 'action':action}));
       final response=await completer.future.timeout(const Duration(seconds:5));
       if(response['type']=='error') throw PanelException(response['code'] is String ? response['code'] as String : 'unknown');
       return response;
     } finally { _pending.remove(id); }
+  }
+
+  Future<Map<String,dynamic>> liveGet() async {
+    final r=await _request('get_live_ad');
+    if(r['type']!='live_ad') throw const FormatException('invalid_response');
+    return r;
+  }
+  Future<Map<String,dynamic>> liveSet(Map<String,dynamic> config) async {
+    final r=await _request('set_live_ad',config:config);
+    if(r['type']!='live_ad_configured') throw const FormatException('invalid_response');
+    return r;
+  }
+  Future<Map<String,dynamic>> liveAction(String action) async {
+    final r=await _request('live_ad_action',action:action);
+    if(r['type']!='live_ad_state') throw const FormatException('invalid_response');
+    return r;
   }
 
   Future<bool> advertisingAvailable() async {

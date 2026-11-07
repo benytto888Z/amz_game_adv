@@ -59,6 +59,48 @@ uint8_t prochaineNote = 0, appuisResetVictoire = 0;
 uint32_t debutMelodie = 0;
 bool melodieTerminee = false;
 
+
+// Publicite de demonstration uniquement : volatile, un seul message en RAM.
+char textePub[101]="AMZ-IT";
+uint32_t couleurPub=0x00ffff, intervallePub=70;
+// Icones originales 5x5 : chaque ligne utilise les 5 bits de poids faible.
+// L'identifiant est partage avec l'application (0 = aucune).
+const uint8_t iconesPub[4][5] = {
+ {0,0,0,0,0}, {10,31,31,14,4}, {14,21,17,21,14}, {4,21,14,31,10}
+};
+uint8_t iconePub=0;
+uint8_t luminositePub=20; // limite physique logicielle : 20/255
+bool scrollPub=true, pubSale=true;
+enum EtatPub { PUB_STOP, PUB_PLAY, PUB_PAUSE };
+EtatPub etatPub=PUB_STOP;
+int positionPub=32;
+uint32_t dernierPub=0;
+
+void valeursPub(JsonDocument &d) {
+ d["texte"]=textePub; d["couleur_rgb"]=couleurPub; d["intervalle_ms"]=intervallePub;
+ d["luminosite"]=luminositePub; d["scroll"]=scrollPub; d["icone"]=iconePub;
+ d["lecture"]=etatPub==PUB_PLAY?"play":etatPub==PUB_PAUSE?"pause":"stop";
+}
+void afficherPub() {
+ matrix.setBrightness(luminositePub);
+ matrix.fillScreen(0); matrix.setFont(); matrix.setTextSize(1); matrix.setTextWrap(false);
+ const uint16_t couleur=matrix.Color((couleurPub>>16)&255,(couleurPub>>8)&255,couleurPub&255);
+ matrix.setTextColor(couleur);
+ const int x=scrollPub?positionPub:0;
+ if(iconePub!=0) for(int y=0;y<5;y++) for(int dx=0;dx<5;dx++)
+  if(iconesPub[iconePub][y] & (1 << (4-dx))) matrix.drawPixel(x+dx,y+1,couleur);
+ matrix.setCursor(x+(iconePub?6:0),0); matrix.print(textePub); matrix.show();
+}
+void actualiserPub(uint32_t now) {
+ if(etat!=PRET || etatPub==PUB_STOP) return; // jeu prioritaire
+ if(pubSale || (etatPub==PUB_PLAY && scrollPub && uint32_t(now-dernierPub)>=intervallePub)) {
+  if(!pubSale && etatPub==PUB_PLAY && scrollPub) {
+   --positionPub;
+   if(positionPub <= -(int)(strlen(textePub)*6 + (iconePub ? 6 : 0))) positionPub=32;
+  }
+  afficherPub(); pubSale=false; dernierPub=now;
+ }
+}
 void son(uint32_t now, unsigned freq, uint32_t duree) {
  tone(PIN_SON, freq); sonActif=true; sonDebut=now; sonDuree=duree;
 }
@@ -236,7 +278,7 @@ void traiterSocket(uint8_t client, WStype_t type, uint8_t* payload, size_t lengt
     reponse["matrix"]["width"]=32;
     reponse["matrix"]["height"]=8;
     reponse["features"]["game"]=true;
-    reponse["features"]["advertising"]=false;
+    reponse["features"]["advertising"]=true; // controle direct uniquement
     reponse["features"]["playlist"]=false;
     reponse["features"]["scheduler"]=false;
     reponse["security"]["authentication"]=false;
@@ -246,6 +288,31 @@ void traiterSocket(uint8_t client, WStype_t type, uint8_t* payload, size_t lengt
     reponse["etat"]=etat==PRET?"pret":etat==EN_COURS?"en_cours":etat==CAPTURE?"capture":etat==VICTOIRE?"victoire":"resultat";
     reponse["mode"]=modeJeu==FACILE?"facile":modeJeu==DIFFICILE?"difficile":"smiley";
     reponse["dernier_temps_ms"]=resultat;
+   } else if(strcmp(action,"get_live_ad")==0) {
+    reponse["type"]="live_ad"; valeursPub(reponse);
+   } else if(strcmp(action,"set_live_ad")==0) {
+    JsonObjectConst p=entree["config"].as<JsonObjectConst>();
+    uint32_t rgb=0, vitesse=0, lum=0, icone=0;
+    const char *text=p["texte"] | "";
+    size_t n=strlen(text); bool ascii=n>0 && n<=100;
+    for(size_t i=0;i<n && ascii;i++) if((unsigned char)text[i]<32 || (unsigned char)text[i]>126) ascii=false;
+    if(etat!=PRET) {reponse["type"]="error";reponse["code"]="game_busy";}
+    else if(p.isNull() || (p.size()!=5 && p.size()!=6) || !p["scroll"].is<bool>() || !ascii ||
+      (p.size()==6 && !champEntier(p,"icone",0,3,icone)) ||
+      !champEntier(p,"couleur_rgb",0,0xffffff,rgb) || !champEntier(p,"intervalle_ms",20,500,vitesse) ||
+      !champEntier(p,"luminosite",1,20,lum)) {reponse["type"]="error";reponse["code"]="invalid_config";}
+    else {
+     strlcpy(textePub,text,sizeof textePub); couleurPub=rgb;intervallePub=vitesse;
+     luminositePub=lum;iconePub=icone;scrollPub=p["scroll"].as<bool>();positionPub=scrollPub?32:0;pubSale=true;
+     reponse["type"]="live_ad_configured";valeursPub(reponse);
+    }
+   } else if(strcmp(action,"live_ad_action")==0) {
+    const char* cmd=entree["action"] | "";
+    if(etat!=PRET){reponse["type"]="error";reponse["code"]="game_busy";}
+    else if(strcmp(cmd,"play")==0){etatPub=PUB_PLAY;pubSale=true;reponse["type"]="live_ad_state";valeursPub(reponse);}
+    else if(strcmp(cmd,"pause")==0 && etatPub!=PUB_STOP){etatPub=PUB_PAUSE;pubSale=true;reponse["type"]="live_ad_state";valeursPub(reponse);}
+    else if(strcmp(cmd,"stop")==0){etatPub=PUB_STOP;matrix.setBrightness(LUMINOSITE);afficherPret();reponse["type"]="live_ad_state";valeursPub(reponse);}
+    else {reponse["type"]="error";reponse["code"]="invalid_action";}
    } else if(strcmp(action,"get_config")==0) {
     reponse["type"]="config"; remplirConfig(reponse);
    } else if(strcmp(action,"set_config")==0) {
@@ -325,10 +392,10 @@ void loop() {
  uint32_t now=millis();
  if(sonActif && uint32_t(now-sonDebut)>=sonDuree) arreterSon();
  bool go=jeu.appui(now), choix=mode.appui(now);
- if(choix && etat==PRET){modeJeu=(ModeJeu)((modeJeu+1)%3); afficherPret(); Serial.println(modeJeu==FACILE?"Mode facile":modeJeu==DIFFICILE?"Mode difficile":"Mode smiley");}
+ if(choix && etat==PRET){pubSale=true; modeJeu=(ModeJeu)((modeJeu+1)%3); afficherPret(); Serial.println(modeJeu==FACILE?"Mode facile":modeJeu==DIFFICILE?"Mode difficile":"Mode smiley");}
  if(go){
   if(etat==PRET){
-   depart=now; dernierAffichage=now; derniereSeconde=0; etat=EN_COURS;
+   depart=now; dernierAffichage=now; derniereSeconde=0; etat=EN_COURS; matrix.setBrightness(LUMINOSITE);
    if(modeJeu==DIFFICILE){matrix.fillScreen(0);matrix.show();}
    else if(modeJeu==SMILEY){
     // Tirer une autre position parmi les 10 possibles dans la moitie droite.
@@ -365,10 +432,10 @@ void loop() {
    ++appuisResetVictoire;
    Serial.print("Appuis pour reset : "); Serial.print(appuisResetVictoire); Serial.println("/3");
    if(appuisResetVictoire>=3) {
-    arreterSon(); etat=PRET; afficherPret(); Serial.println("Remise a zero");
+    arreterSon(); etat=PRET; matrix.setBrightness(LUMINOSITE); afficherPret(); pubSale=true; Serial.println("Remise a zero");
    }
   } else {
-   arreterSon(); etat=PRET; afficherPret(); Serial.println("Remise a zero");
+   arreterSon(); etat=PRET; matrix.setBrightness(LUMINOSITE); afficherPret(); pubSale=true; Serial.println("Remise a zero");
   }
  }
  if(etat==EN_COURS){
@@ -397,6 +464,7 @@ void loop() {
    ++prochaineNote;
   }
  }
+ actualiserPub(now);
  if(etat==VICTOIRE && uint32_t(now-dernierScroll)>=SCROLL_INTERVAL_MS){
   dernierScroll=now; matrix.fillScreen(0); matrix.setTextColor(matrix.Color(255,180,0));
   matrix.setCursor(scrollX,0); matrix.print(message); matrix.show();
