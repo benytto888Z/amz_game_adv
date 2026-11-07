@@ -4,6 +4,7 @@
 #include <esp_system.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include "Config.h"
@@ -254,11 +255,19 @@ void activerServeur() {
  serveur.begin(); serveur.onEvent(traiterSocket);
 }
 bool demarrerWifi(const String &pass) {
- if(wifiActif){serveur.close();WiFi.softAPdisconnect(true);wifiActif=false;}
+ if(wifiActif){serveur.close();MDNS.end();WiFi.softAPdisconnect(true);wifiActif=false;}
  uint64_t id=ESP.getEfuseMac(); char suffixe[5]; snprintf(suffixe,sizeof suffixe,"%04X",(unsigned)(id&0xFFFF));
  nomReseau=String("AMZ-IT-")+suffixe;
  WiFi.mode(WIFI_AP);
+ const IPAddress ip(192,168,4,88), masque(255,255,255,0);
+ if(!WiFi.softAPConfig(ip,ip,masque)) {Serial.println("ERREUR : configuration IP SoftAP.");return false;}
  if(!WiFi.softAP(nomReseau.c_str(),pass.c_str())) {Serial.println("ERREUR : demarrage SoftAP.");return false;}
+ if(MDNS.begin("amz-adv")) {
+  MDNS.addService("ws","tcp",81);
+  Serial.println("Nom mDNS : amz-adv.local");
+ } else {
+  Serial.println("AVERTISSEMENT : mDNS indisponible ; l'adresse IP reste utilisable.");
+ }
  activerServeur(); wifiActif=true;
  Serial.print("Reseau : ");Serial.println(nomReseau); Serial.print("Adresse : ");Serial.println(WiFi.softAPIP());return true;
 }
