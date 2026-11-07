@@ -4,7 +4,7 @@
 #include <esp_system.h>
 #include <Preferences.h>
 #include <WiFi.h>
-#include <WebServer.h>
+#include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include "Config.h"
 #include "bluesmiley24.h"
@@ -113,10 +113,9 @@ void victoire(uint32_t ms) {
 // La configuration n'est changee en RAM qu'apres verification de l'ecriture.
 Preferences stockage;
 Preferences identifiants;
-WebServer serveur(80);
-String cleApi;
+WebSocketsServer serveur(81);
 String nomReseau;
-bool wifiActif=false, routesConfigurees=false;
+bool wifiActif=false;
 const uint32_t SIGNATURE=0x414D5A47, VERSION_CONFIG=1;
 int emplacement=-1; uint32_t generation=0;
 char ligneSerie[96]; size_t longueurSerie=0; bool ligneTropLongue=false;
@@ -160,18 +159,18 @@ void afficherConfig() {
  Serial.printf("cible=%lu centiemes | marge=%lu centiemes | facile=#%06lX | difficile=#%06lX | traversee=%lu ms\n",
  (unsigned long)CIBLE_CS,(unsigned long)marge,(unsigned long)couleurFacile,(unsigned long)couleurDifficile,(unsigned long)TRAVERSEE_MS);
 }
-bool configurerWifi(const char *motDePasse, const char *cle);
+bool configurerWifi(const char *motDePasse);
 void commande(const char *s) {
  if(strcmp(s,"etat")==0){afficherConfig();return;}
  if(strcmp(s,"aide")==0){
   Serial.println("etat | cible N | marge N | facile R G B | difficile R G B | vitesse N");
-  Serial.println("wifi MOT_DE_PASSE CLE_API (sans espaces, 8..63 caracteres)");
+  Serial.println("wifi MOT_DE_PASSE (sans espaces, 8..63 caracteres)");
   Serial.println("cible/marge en centiemes ; vitesse en ms (100..60000). Reglage seulement si PRET.");return;
  }
  if(etat!=PRET){Serial.println("ERREUR : jeu non pret, remettre a zero.");return;}
- char wifiPass[64]={}, cle[64]={}, surplus;
+ char wifiPass[64]={}, surplus;
  if(strncmp(s,"wifi ",5)==0) {
-  if(sscanf(s,"wifi %63s %63s %c",wifiPass,cle,&surplus)!=2 || !configurerWifi(wifiPass,cle))
+  if(sscanf(s,"wifi %63s %c",wifiPass,&surplus)!=1 || !configurerWifi(wifiPass))
    Serial.println("ERREUR : configuration Wi-Fi impossible ou codes invalides.");
   return;
  }
@@ -204,67 +203,58 @@ void lireSerie() {
 }
 
 
-// API locale : HTTP non chiffre, usage sur reseau isole de confiance uniquement.
-void envoyerJson(int code, JsonDocument &doc) {
- String sortie; serializeJson(doc,sortie); serveur.send(code,"application/json",sortie);
-}
-void erreurApi(int statut,const char* code,const char* message) {
- JsonDocument d; d["error"]["code"]=code; d["error"]["message"]=message; envoyerJson(statut,d);
-}
-bool autorise() {
- if(!serveur.hasHeader("X-API-Key") || serveur.header("X-API-Key")!=cleApi) {
-  erreurApi(401,"unauthorized","Cle API incorrecte ou absente"); return false;
- }
- return true;
-}
-void apiEtat() {
- if(!autorise())return;
- JsonDocument d; d["api_version"]=1;
- d["etat"]=etat==PRET?"pret":etat==EN_COURS?"en_cours":etat==CAPTURE?"capture":etat==VICTOIRE?"victoire":"resultat";
- d["mode"]=modeJeu==FACILE?"facile":modeJeu==DIFFICILE?"difficile":"smiley";
- d["dernier_temps_ms"]=resultat; envoyerJson(200,d);
-}
+// API WebSocket non authentifiee, non chiffree : reseau local de test seulement.
 void remplirConfig(JsonDocument &d) {
  d["cible_cs"]=CIBLE_CS; d["marge_cs"]=marge; d["facile_rgb"]=couleurFacile;
  d["difficile_rgb"]=couleurDifficile; d["traversee_ms"]=TRAVERSEE_MS;
 }
-void apiLireConfig() {
- if(!autorise())return;
- JsonDocument d; remplirConfig(d); envoyerJson(200,d);
+bool champEntier(JsonObjectConst d,const char* cle,uint32_t min,uint32_t max,uint32_t &out) {
+ if(!d[cle].is<uint32_t>()) return false;
+ uint32_t v=d[cle].as<uint32_t>(); if(v<min || v>max) return false; out=v; return true;
 }
-bool champEntier(JsonDocument &d,const char* cle,uint32_t min,uint32_t max,uint32_t &out) {
- if(!d[cle].is<uint32_t>())return false;
- uint32_t v=d[cle].as<uint32_t>(); if(v<min || v>max)return false; out=v;return true;
-}
-void apiModifierConfig() {
- if(!autorise())return;
- if(etat!=PRET){erreurApi(409,"game_busy","Jeu non pret : remettre a zero");return;}
- if(!serveur.hasArg("plain") || serveur.arg("plain").length()>512){erreurApi(400,"invalid_body","JSON absent ou trop long");return;}
- JsonDocument d;
- DeserializationError err=deserializeJson(d,serveur.arg("plain"));
- if(err || !d.is<JsonObject>()){erreurApi(400,"invalid_json","JSON invalide");return;}
- Config c=configCourante();
- if(d.as<JsonObject>().size()!=5 || !champEntier(d,"cible_cs",0,599999,c.cible) ||
- !champEntier(d,"marge_cs",0,599999,c.margeCs) || !champEntier(d,"facile_rgb",0,0xFFFFFF,c.facile) ||
- !champEntier(d,"difficile_rgb",0,0xFFFFFF,c.difficile) || !champEntier(d,"traversee_ms",100,60000,c.traversee)) {
-  erreurApi(400,"invalid_config","Cinq champs entiers valides requis");return;
+void traiterSocket(uint8_t client, WStype_t type, uint8_t* payload, size_t length) {
+ if(type!=WStype_TEXT) return;
+ JsonDocument reponse;
+ reponse["version"]=1;
+ JsonDocument entree;
+ if(length>512 || deserializeJson(entree,payload,length) || !entree.is<JsonObject>()) {
+  reponse["type"]="error"; reponse["code"]="invalid_json";
+ } else {
+  const char *id=entree["id"] | "";
+  if(strlen(id)>40) { reponse["type"]="error"; reponse["code"]="invalid_id"; }
+  else {
+   reponse["id"]=id;
+   const char *action=entree["type"] | "";
+   if(strcmp(action,"get_status")==0) {
+    reponse["type"]="status";
+    reponse["etat"]=etat==PRET?"pret":etat==EN_COURS?"en_cours":etat==CAPTURE?"capture":etat==VICTOIRE?"victoire":"resultat";
+    reponse["mode"]=modeJeu==FACILE?"facile":modeJeu==DIFFICILE?"difficile":"smiley";
+    reponse["dernier_temps_ms"]=resultat;
+   } else if(strcmp(action,"get_config")==0) {
+    reponse["type"]="config"; remplirConfig(reponse);
+   } else if(strcmp(action,"set_config")==0) {
+    Config c=configCourante(); JsonObjectConst params=entree["config"].as<JsonObjectConst>();
+    if(etat!=PRET) {reponse["type"]="error"; reponse["code"]="game_busy";}
+    else if(params.isNull() || params.size()!=5 || !champEntier(params,"cible_cs",0,599999,c.cible) ||
+      !champEntier(params,"marge_cs",0,599999,c.margeCs) || !champEntier(params,"facile_rgb",0,0xFFFFFF,c.facile) ||
+      !champEntier(params,"difficile_rgb",0,0xFFFFFF,c.difficile) || !champEntier(params,"traversee_ms",100,60000,c.traversee)) {
+     reponse["type"]="error"; reponse["code"]="invalid_config";
+    } else {
+     Config old=configCourante();
+     bool identique=c.cible==old.cible && c.margeCs==old.margeCs && c.facile==old.facile && c.difficile==old.difficile && c.traversee==old.traversee;
+     if(!identique && !enregistrer(c)){reponse["type"]="error"; reponse["code"]="storage_error";}
+     else {afficherPret(); reponse["type"]="config_applied"; remplirConfig(reponse);}
+    }
+   } else { reponse["type"]="error"; reponse["code"]="unknown_action"; }
+  }
  }
- Config avant=configCourante();
- bool identique=c.cible==avant.cible && c.margeCs==avant.margeCs && c.facile==avant.facile && c.difficile==avant.difficile && c.traversee==avant.traversee;
- if(!identique && !enregistrer(c)){erreurApi(500,"storage_error","Sauvegarde non confirmee");return;}
- afficherPret(); JsonDocument reponse; reponse["applique"]=true; remplirConfig(reponse); envoyerJson(200,reponse);
+ String texte; serializeJson(reponse,texte); serveur.sendTXT(client,texte);
 }
 void activerServeur() {
- if(routesConfigurees){serveur.begin();return;}
- const char* entetes[]={"X-API-Key"}; serveur.collectHeaders(entetes,1);
- serveur.on("/api/v1/status",HTTP_GET,apiEtat);
- serveur.on("/api/v1/config",HTTP_GET,apiLireConfig);
- serveur.on("/api/v1/config",HTTP_PUT,apiModifierConfig);
- serveur.onNotFound([](){erreurApi(404,"not_found","Route introuvable");});
- routesConfigurees=true; serveur.begin();
+ serveur.begin(); serveur.onEvent(traiterSocket);
 }
 bool demarrerWifi(const String &pass) {
- if(wifiActif){serveur.stop();WiFi.softAPdisconnect(true);wifiActif=false;}
+ if(wifiActif){serveur.close();WiFi.softAPdisconnect(true);wifiActif=false;}
  uint64_t id=ESP.getEfuseMac(); char suffixe[5]; snprintf(suffixe,sizeof suffixe,"%04X",(unsigned)(id&0xFFFF));
  nomReseau=String("AMZ-IT-")+suffixe;
  WiFi.mode(WIFI_AP);
@@ -272,27 +262,25 @@ bool demarrerWifi(const String &pass) {
  activerServeur(); wifiActif=true;
  Serial.print("Reseau : ");Serial.println(nomReseau); Serial.print("Adresse : ");Serial.println(WiFi.softAPIP());return true;
 }
-bool configurerWifi(const char *motDePasse,const char *cle) {
- size_t np=strlen(motDePasse), nk=strlen(cle);
- if(np<8 || np>63 || nk<8 || nk>63) return false;
+bool configurerWifi(const char *motDePasse) {
+ size_t np=strlen(motDePasse);
+ if(np<8 || np>63) return false;
  // Credentials stored as one NVS blob so they cannot be mixed by a partial update.
  struct Identifiants { char pass[64]; char cle[64]; } data={};
- strlcpy(data.pass,motDePasse,sizeof data.pass);strlcpy(data.cle,cle,sizeof data.cle);
+ strlcpy(data.pass,motDePasse,sizeof data.pass);
  if(identifiants.putBytes("acces",&data,sizeof data)!=sizeof data) return false;
  Identifiants v={};
  if(identifiants.getBytes("acces",&v,sizeof v)!=sizeof v || memcmp(&data,&v,sizeof v)!=0) return false;
- cleApi=cle;
  if(!demarrerWifi(String(motDePasse))) return false;
  Serial.println("OK : identifiants enregistres. Reconnecter le telephone au reseau affiche.");return true;
 }
 void chargerWifi() {
  struct Identifiants { char pass[64]; char cle[64]; } data={};
  if(identifiants.getBytesLength("acces")!=sizeof data || identifiants.getBytes("acces",&data,sizeof data)!=sizeof data ||
- memchr(data.pass,'\0',sizeof data.pass)==nullptr || memchr(data.cle,'\0',sizeof data.cle)==nullptr ||
- strlen(data.pass)<8 || strlen(data.cle)<8) {
+ memchr(data.pass,'\0',sizeof data.pass)==nullptr || strlen(data.pass)<8) {
   Serial.println("Wi-Fi non configure. Taper aide pour la configuration serie."); return;
  }
- cleApi=data.cle; demarrerWifi(String(data.pass));
+ demarrerWifi(String(data.pass));
 }
 
 void setup() {
@@ -309,7 +297,7 @@ void setup() {
 }
 void loop() {
  lireSerie();
- if(wifiActif) serveur.handleClient();
+ if(wifiActif) serveur.loop();
  uint32_t now=millis();
  if(sonActif && uint32_t(now-sonDebut)>=sonDuree) arreterSon();
  bool go=jeu.appui(now), choix=mode.appui(now);
