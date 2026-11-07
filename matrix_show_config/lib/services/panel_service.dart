@@ -117,6 +117,11 @@ class PanelService {
     if(r['type']!='live_ad_configured') throw const FormatException('invalid_response');
     return r;
   }
+  Future<Map<String,dynamic>> liveSave() async {
+    final r=await _request('save_live_ad');
+    if(r['type']!='live_ad_saved') throw const FormatException('invalid_response');
+    return r;
+  }
   Future<Map<String,dynamic>> liveAction(String action) async {
     final r=await _request('live_ad_action',action:action);
     if(r['type']!='live_ad_state') throw const FormatException('invalid_response');

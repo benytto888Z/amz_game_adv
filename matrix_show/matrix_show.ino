@@ -8,6 +8,7 @@
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include "Config.h"
+#include "AdConfig.h"
 #include "bluesmiley24.h"
 
 constexpr int PIN_LED=18, PIN_JEU=26, PIN_MODE=27, PIN_SON=13;
@@ -68,23 +69,88 @@ uint32_t couleurPub=0x00ffff, intervallePub=70;
 const uint8_t iconesPub[4][5] = {
  {0,0,0,0,0}, {10,31,31,14,4}, {14,21,17,21,14}, {4,21,14,31,10}
 };
-uint8_t iconePub=0;
+uint8_t iconePub=0, effetPub=0, phaseEffetPub=0;
+uint32_t dernierEffetPub=0;
+const uint32_t couleursEffetPub[] = {0xff0000,0xff8000,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff};
 uint8_t luminositePub=20; // limite physique logicielle : 20/255
 bool scrollPub=true, pubSale=true;
 enum EtatPub { PUB_STOP, PUB_PLAY, PUB_PAUSE };
 EtatPub etatPub=PUB_STOP;
 int positionPub=32;
 uint32_t dernierPub=0;
+Preferences stockagePub;
+bool stockagePubPret=false, pubSauvee=false;
+int slotPub=-1;
+uint32_t generationPub=0;
+AdConfig dernierePub={};
 
 void valeursPub(JsonDocument &d) {
  d["texte"]=textePub; d["couleur_rgb"]=couleurPub; d["intervalle_ms"]=intervallePub;
- d["luminosite"]=luminositePub; d["scroll"]=scrollPub; d["icone"]=iconePub;
+ d["luminosite"]=luminositePub; d["scroll"]=scrollPub; d["icone"]=iconePub; d["effet"]=effetPub;
  d["lecture"]=etatPub==PUB_PLAY?"play":etatPub==PUB_PAUSE?"pause":"stop";
+ d["sauvegarde"]=pubSauvee; d["stockage_disponible"]=stockagePubPret;
+}
+// Double emplacement : on conserve le dernier slot valide pendant l'ecriture.
+const uint32_t SIGNATURE_PUB=0x414D5A50, VERSION_PUB=1;
+uint32_t checksumPub(const AdConfig &c) {
+ uint32_t h=2166136261UL;
+ const uint32_t nombres[]={c.signature,c.version,c.generation,c.luminosite,c.scroll,c.icone,c.effet,c.couleur,c.intervalle};
+ for(uint32_t v:nombres) for(int i=0;i<4;i++){h^=(v>>(8*i))&255;h*=16777619UL;}
+ for(size_t i=0;i<sizeof c.texte;i++){h^=(uint8_t)c.texte[i];h*=16777619UL;}
+ return h;
+}
+bool pubValide(const AdConfig &c) {
+ if(c.signature!=SIGNATURE_PUB || c.version!=VERSION_PUB || c.checksum!=checksumPub(c) ||
+    !memchr(c.texte,'\0',sizeof c.texte) || c.texte[0]=='\0' || c.couleur>0xffffff ||
+    c.intervalle<20 || c.intervalle>500 || c.luminosite<1 || c.luminosite>20 ||
+    c.scroll>1 || c.icone>3 || c.effet>2) return false;
+ for(size_t i=0;c.texte[i];i++) if((uint8_t)c.texte[i]<32 || (uint8_t)c.texte[i]>126) return false;
+ return true;
+}
+bool lireSlotPub(const char *cle,AdConfig &c) {
+ return stockagePub.getBytesLength(cle)==sizeof c && stockagePub.getBytes(cle,&c,sizeof c)==sizeof c && pubValide(c);
+}
+void chargerPub() {
+ if(!stockagePubPret) return;
+ AdConfig a={},b={};
+ bool va=lireSlotPub("pub0",a), vb=lireSlotPub("pub1",b);
+ if(!va && !vb) { Serial.println("Aucune publicite sauvegardee valide."); return; }
+ if(va && (!vb || (int32_t)(a.generation-b.generation)>0)){dernierePub=a;slotPub=0;}
+ else {dernierePub=b;slotPub=1;}
+ generationPub=dernierePub.generation; pubSauvee=true;
+ strlcpy(textePub,dernierePub.texte,sizeof textePub);
+ couleurPub=dernierePub.couleur; intervallePub=dernierePub.intervalle;
+ luminositePub=dernierePub.luminosite; scrollPub=dernierePub.scroll!=0;
+ iconePub=dernierePub.icone; effetPub=dernierePub.effet;
+ positionPub=scrollPub?32:0; phaseEffetPub=0; dernierEffetPub=millis();
+ etatPub=PUB_PLAY; pubSale=true;
+ Serial.println("Publicite sauvegardee restauree : lecture automatique.");
+}
+bool enregistrerPub() {
+ if(!stockagePubPret) return false;
+ AdConfig c={}; c.signature=SIGNATURE_PUB; c.version=VERSION_PUB; c.generation=generationPub+1;
+ strlcpy(c.texte,textePub,sizeof c.texte); c.couleur=couleurPub; c.intervalle=intervallePub;
+ c.luminosite=luminositePub; c.scroll=scrollPub?1:0; c.icone=iconePub; c.effet=effetPub;
+ c.checksum=checksumPub(c); if(!pubValide(c)) return false;
+ if(pubSauvee && strcmp(c.texte,dernierePub.texte)==0 && c.couleur==dernierePub.couleur &&
+    c.intervalle==dernierePub.intervalle && c.luminosite==dernierePub.luminosite &&
+    c.scroll==dernierePub.scroll && c.icone==dernierePub.icone && c.effet==dernierePub.effet) {
+  AdConfig verifie={};
+  if(lireSlotPub(slotPub==0?"pub0":"pub1",verifie) && memcmp(&verifie,&dernierePub,sizeof verifie)==0) return true;
+ }
+ int cible=slotPub==0?1:0; const char *cle=cible==0?"pub0":"pub1";
+ if(stockagePub.putBytes(cle,&c,sizeof c)!=sizeof c) return false;
+ AdConfig verifie={};
+ if(!lireSlotPub(cle,verifie) || memcmp(&c,&verifie,sizeof c)!=0) return false;
+ dernierePub=verifie; slotPub=cible; generationPub=verifie.generation; pubSauvee=true;
+ return true;
 }
 void afficherPub() {
  matrix.setBrightness(luminositePub);
  matrix.fillScreen(0); matrix.setFont(); matrix.setTextSize(1); matrix.setTextWrap(false);
- const uint16_t couleur=matrix.Color((couleurPub>>16)&255,(couleurPub>>8)&255,couleurPub&255);
+ if(effetPub==1 && phaseEffetPub%2==1) { matrix.show(); return; }
+ const uint32_t rgbEffet=effetPub==2?couleursEffetPub[phaseEffetPub%7]:couleurPub;
+ const uint16_t couleur=matrix.Color((rgbEffet>>16)&255,(rgbEffet>>8)&255,rgbEffet&255);
  matrix.setTextColor(couleur);
  const int x=scrollPub?positionPub:0;
  if(iconePub!=0) for(int y=0;y<5;y++) for(int dx=0;dx<5;dx++)
@@ -92,14 +158,23 @@ void afficherPub() {
  matrix.setCursor(x+(iconePub?6:0),0); matrix.print(textePub); matrix.show();
 }
 void actualiserPub(uint32_t now) {
- if(etat!=PRET || etatPub==PUB_STOP) return; // jeu prioritaire
- if(pubSale || (etatPub==PUB_PLAY && scrollPub && uint32_t(now-dernierPub)>=intervallePub)) {
-  if(!pubSale && etatPub==PUB_PLAY && scrollPub) {
+ // Aucun effet ni rendu publicitaire pendant le jeu ou son resultat.
+ if(etat!=PRET || etatPub==PUB_STOP) { dernierEffetPub=now; return; }
+ bool redessiner=pubSale;
+ if(etatPub==PUB_PLAY) {
+  if(effetPub!=0 && uint32_t(now-dernierEffetPub)>=1000) {
+   phaseEffetPub=(phaseEffetPub+1)%7;
+   // Clignotement a deux phases, alternance coloree a sept phases.
+   if(effetPub==1) phaseEffetPub%=2;
+   dernierEffetPub=now; redessiner=true;
+  }
+  if(scrollPub && !pubSale && uint32_t(now-dernierPub)>=intervallePub) {
    --positionPub;
    if(positionPub <= -(int)(strlen(textePub)*6 + (iconePub ? 6 : 0))) positionPub=32;
+   dernierPub=now; redessiner=true;
   }
-  afficherPub(); pubSale=false; dernierPub=now;
- }
+ } else dernierEffetPub=now;
+ if(redessiner) { afficherPub(); pubSale=false; }
 }
 void son(uint32_t now, unsigned freq, uint32_t duree) {
  tone(PIN_SON, freq); sonActif=true; sonDebut=now; sonDuree=duree;
@@ -292,20 +367,26 @@ void traiterSocket(uint8_t client, WStype_t type, uint8_t* payload, size_t lengt
     reponse["type"]="live_ad"; valeursPub(reponse);
    } else if(strcmp(action,"set_live_ad")==0) {
     JsonObjectConst p=entree["config"].as<JsonObjectConst>();
-    uint32_t rgb=0, vitesse=0, lum=0, icone=0;
+    uint32_t rgb=0, vitesse=0, lum=0, icone=0, effet=0;
     const char *text=p["texte"] | "";
     size_t n=strlen(text); bool ascii=n>0 && n<=100;
     for(size_t i=0;i<n && ascii;i++) if((unsigned char)text[i]<32 || (unsigned char)text[i]>126) ascii=false;
     if(etat!=PRET) {reponse["type"]="error";reponse["code"]="game_busy";}
-    else if(p.isNull() || (p.size()!=5 && p.size()!=6) || !p["scroll"].is<bool>() || !ascii ||
-      (p.size()==6 && !champEntier(p,"icone",0,3,icone)) ||
+    else if(p.isNull() || (p.size()!=5 && p.size()!=6 && p.size()!=7) || !p["scroll"].is<bool>() || !ascii ||
+      (p.size()>=6 && !champEntier(p,"icone",0,3,icone)) ||
+      (p.size()==7 && !champEntier(p,"effet",0,2,effet)) ||
       !champEntier(p,"couleur_rgb",0,0xffffff,rgb) || !champEntier(p,"intervalle_ms",20,500,vitesse) ||
       !champEntier(p,"luminosite",1,20,lum)) {reponse["type"]="error";reponse["code"]="invalid_config";}
     else {
      strlcpy(textePub,text,sizeof textePub); couleurPub=rgb;intervallePub=vitesse;
-     luminositePub=lum;iconePub=icone;scrollPub=p["scroll"].as<bool>();positionPub=scrollPub?32:0;pubSale=true;
+     luminositePub=lum;iconePub=icone;effetPub=effet;phaseEffetPub=0;dernierEffetPub=millis();scrollPub=p["scroll"].as<bool>();positionPub=scrollPub?32:0;pubSale=true;
      reponse["type"]="live_ad_configured";valeursPub(reponse);
     }
+   } else if(strcmp(action,"save_live_ad")==0) {
+    if(etat!=PRET){reponse["type"]="error";reponse["code"]="game_busy";}
+    else if(!stockagePubPret){reponse["type"]="error";reponse["code"]="ad_storage_unavailable";}
+    else if(!enregistrerPub()){reponse["type"]="error";reponse["code"]="ad_storage_uncertain";}
+    else {reponse["type"]="live_ad_saved";valeursPub(reponse);}
    } else if(strcmp(action,"live_ad_action")==0) {
     const char* cmd=entree["action"] | "";
     if(etat!=PRET){reponse["type"]="error";reponse["code"]="game_busy";}
@@ -382,6 +463,9 @@ void setup() {
  if(stockage.begin("amz-game",false)) chargerConfig();
  else Serial.println("ERREUR : stockage NVS indisponible.");
  afficherConfig(); afficherPret();
+ stockagePubPret=stockagePub.begin("amz-pub",false);
+ if(stockagePubPret) chargerPub();
+ else Serial.println("ERREUR : stockage publicitaire indisponible.");
  if(identifiants.begin("amz-acces",false)) chargerWifi();
  else Serial.println("ERREUR : stockage identifiants indisponible.");
  Serial.println("Pret : facile, difficile, puis smiley. Gros bouton : depart / arret / reset.");
