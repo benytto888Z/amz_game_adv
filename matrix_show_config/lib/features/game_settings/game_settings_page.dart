@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:get/get.dart';
 import '../../services/panel_service.dart';
 
@@ -16,8 +16,8 @@ class GameSettingsPage extends StatefulWidget {
 
 class _GameSettingsPageState extends State<GameSettingsPage> {
   final form=GlobalKey<FormState>();
-  final target=TextEditingController(), margin=TextEditingController(), easy=TextEditingController(),
-      hard=TextEditingController(), speed=TextEditingController();
+  final target=TextEditingController(), margin=TextEditingController(), speed=TextEditingController();
+  int easyRgb=0x00ff00, hardRgb=0xff0000;
   bool busy=false, loaded=false;
   String? feedback;
   bool success=false;
@@ -25,14 +25,14 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
   @override
   void initState(){super.initState(); _load();}
   @override
-  void dispose(){for(final c in [target,margin,easy,hard,speed]) {c.dispose();} super.dispose();}
+  void dispose(){for(final c in [target,margin,speed]) {c.dispose();} super.dispose();}
 
   void _populate(PanelConfig c) {
     final mm=c.targetCs~/6000, ss=(c.targetCs~/100)%60, cs=c.targetCs%100;
     String two(int n)=>n.toString().padLeft(2,'0');
     target.text='${two(mm)}:${two(ss)}.${two(cs)}';
-    margin.text='${c.marginCs}'; easy.text=c.easyRgb.toRadixString(16).padLeft(6,'0').toUpperCase();
-    hard.text=c.hardRgb.toRadixString(16).padLeft(6,'0').toUpperCase(); speed.text='${c.traversalMs}';
+    margin.text='${c.marginCs}'; easyRgb=c.easyRgb;
+    hardRgb=c.hardRgb; speed.text='${c.traversalMs}';
   }
   String _err(Object e, {bool saving=false}) {
     if(saving && (e is TimeoutException || (e is PanelException && e.code=='disconnected'))) return 'game_uncertain'.tr;
@@ -63,12 +63,11 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
     final v=int.tryParse(s);
     return v==null || v<min || v>max ? 'game_invalid'.tr : null;
   }
-  String? _validateRgb(String? s) => s==null || !RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(s) ? 'game_hex_hint'.tr : null;
   Future<void> _save() async {
     if(busy || !loaded || !widget.connected.value || widget.gameState.value!='pret') return;
     if(!(form.currentState?.validate()??false))return;
     final config=PanelConfig(targetCs:_parseTime(target.text)!,marginCs:int.parse(margin.text),
-        easyRgb:int.parse(easy.text,radix:16),hardRgb:int.parse(hard.text,radix:16),traversalMs:int.parse(speed.text));
+        easyRgb:easyRgb,hardRgb:hardRgb,traversalMs:int.parse(speed.text));
     setState((){busy=true;feedback=null;success=false;});
     try {
       final confirmed=await widget.service.setConfig(config);
@@ -82,15 +81,43 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
       if(e is TimeoutException || (e is PanelException && e.code=='disconnected')) loaded=false;});
     } finally {if(mounted)setState(()=>busy=false);}
   }
-  Widget _rgbField(TextEditingController controller,String label) => Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    TextFormField(controller:controller,decoration:InputDecoration(labelText:label,prefixText:'#',helperText:'game_hex_hint'.tr),
-        maxLength:6,inputFormatters:[FilteringTextInputFormatter.allow(RegExp('[0-9a-fA-F]'))],validator:_validateRgb,
-        onChanged:(_)=>setState((){})),
-    Wrap(spacing:8,children:[0x00ff00,0xff0000,0x0000ff,0xffffff,0xffa500].map((rgb)=>
-        ActionChip(label:Text('#${rgb.toRadixString(16).padLeft(6,'0').toUpperCase()}'),
-            avatar:CircleAvatar(backgroundColor:Color(0xff000000|rgb)),
-            onPressed:busy?null:()=>setState(()=>controller.text=rgb.toRadixString(16).padLeft(6,'0').toUpperCase()))).toList()),
-  ]);
+  void _setRgb(bool isEasy, int value) {
+    setState(() { if(isEasy) { easyRgb=value; } else { hardRgb=value; } feedback=null; success=false; });
+  }
+  Future<void> _chooseCustom(bool isEasy) async {
+    Color selected=Color(0xff000000 | (isEasy ? easyRgb : hardRgb));
+    final result=await showDialog<Color>(context:context, builder:(context) => AlertDialog(
+      title:Text('game_custom_color'.tr),
+      content:SingleChildScrollView(child:ColorPicker(pickerColor:selected,
+          onColorChanged:(color){selected=color;}, paletteType:PaletteType.hueWheel,
+          enableAlpha:false, labelTypes:const [], hexInputBar:false, colorPickerWidth:260)),
+      actions:[TextButton(onPressed:()=>Navigator.pop(context),child:Text('game_cancel'.tr)),
+        FilledButton(onPressed:()=>Navigator.pop(context,selected),child:Text('game_choose'.tr))],
+    ));
+    if(!mounted || result==null) return;
+    _setRgb(isEasy,result.toARGB32() & 0x00ffffff);
+  }
+  Widget _colorField(bool isEasy, String label) {
+    final current=isEasy ? easyRgb : hardRgb;
+    const presets=[0x00ff00,0xff0000,0x0000ff,0xffffff,0xffa500];
+    const names=['color_green','color_red','color_blue','color_white','color_orange'];
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(label,style:Theme.of(context).textTheme.titleSmall), const SizedBox(height:8),
+      Semantics(label:'game_selected_color'.tr, child:Container(height:48,width:double.infinity,
+          decoration:BoxDecoration(color:Color(0xff000000|current),
+              borderRadius:BorderRadius.circular(12),border:Border.all(color:Theme.of(context).colorScheme.outline)))),
+      const SizedBox(height:12),
+      Wrap(spacing:8,runSpacing:8,children:[
+        for(int i=0;i<presets.length;i++)
+          Semantics(label:names[i].tr,selected:current==presets[i],button:true,child:Tooltip(message:names[i].tr,
+              child:InkWell(onTap:()=>_setRgb(isEasy,presets[i]),borderRadius:BorderRadius.circular(30),
+                  child:Container(width:48,height:48,decoration:BoxDecoration(shape:BoxShape.circle,
+                      color:Color(0xff000000|presets[i]),border:Border.all(color:Theme.of(context).colorScheme.outline)),
+                      child:current==presets[i] ? Icon(Icons.check,color:Color(0xff000000|presets[i]).computeLuminance()>0.4?Colors.black:Colors.white) : null)))),
+        OutlinedButton.icon(onPressed:()=>_chooseCustom(isEasy),icon:const Icon(Icons.palette_outlined),label:Text('game_custom_color'.tr)),
+      ]),
+    ]);
+  }
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar:AppBar(title:Text('game_settings'.tr)),
@@ -103,16 +130,19 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
               if(busy) const LinearProgressIndicator(),
               const SizedBox(height:12),
               TextFormField(controller:target,enabled:loaded&&!busy,decoration:InputDecoration(labelText:'game_target'.tr,helperText:'game_time_help'.tr),
+                  onChanged:(_){if(feedback!=null)setState((){feedback=null;success=false;});},
                   keyboardType:TextInputType.datetime,validator:(s)=>_parseTime(s??'')==null?'game_time_help'.tr:null),
               const SizedBox(height:16),
               TextFormField(controller:margin,enabled:loaded&&!busy,decoration:InputDecoration(labelText:'game_margin'.tr,helperText:'game_margin_help'.tr),
+                  onChanged:(_){if(feedback!=null)setState((){feedback=null;success=false;});},
                   keyboardType:TextInputType.number,validator:(s)=>_validateInt(s,0,599999)),
               const SizedBox(height:16),
-              IgnorePointer(ignoring:!loaded||busy,child:Opacity(opacity:loaded?1:0.5,child:_rgbField(easy,'game_easy'.tr))),
+              IgnorePointer(ignoring:!loaded||busy,child:Opacity(opacity:loaded?1:0.5,child:_colorField(true,'game_easy'.tr))),
               const SizedBox(height:16),
-              IgnorePointer(ignoring:!loaded||busy,child:Opacity(opacity:loaded?1:0.5,child:_rgbField(hard,'game_hard'.tr))),
+              IgnorePointer(ignoring:!loaded||busy,child:Opacity(opacity:loaded?1:0.5,child:_colorField(false,'game_hard'.tr))),
               const SizedBox(height:16),
               TextFormField(controller:speed,enabled:loaded&&!busy,decoration:InputDecoration(labelText:'game_speed'.tr,helperText:'game_speed_help'.tr),
+                  onChanged:(_){if(feedback!=null)setState((){feedback=null;success=false;});},
                   keyboardType:TextInputType.number,validator:(s)=>_validateInt(s,100,60000)),
               const SizedBox(height:20),
               FilledButton(onPressed:connected&&ready&&loaded&&!busy?_save:null,child:Text('game_apply'.tr)),
