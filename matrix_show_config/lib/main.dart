@@ -23,17 +23,17 @@ Future<void> main() async {
 class Texts extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
-    'fr_FR': {'game_custom_color':'Couleur personnalisée','game_cancel':'Annuler','game_choose':'Choisir','game_selected_color':'Couleur sélectionnée','color_green':'Vert','color_red':'Rouge','color_blue':'Bleu','color_white':'Blanc','color_orange':'Orange','game_settings':'Réglages du jeu','game_instructions':'Valeurs confirmées par le panneau. Les modifications sont possibles uniquement lorsque le jeu est prêt.','game_offline':'Panneau non connecté.','game_busy':'Jeu non prêt : remettez-le à zéro.','game_loaded':'Valeurs lues sur le panneau.','game_saved':'Réglages appliqués et confirmés par le panneau.','game_target':'Temps cible','game_time_help':'Format mm:ss.cc, secondes de 00 à 59','game_margin':'Marge en centièmes','game_margin_help':'0 = exact ; les bornes non nulles sont exclues.','game_easy':'Couleur facile','game_hard':'Couleur difficile','game_hex_hint':'Six caractères hexadécimaux, par exemple 00FF00.','game_speed':'Traversée smiley (ms)','game_speed_help':'De 100 à 60000 ms par cycle','game_apply':'Appliquer au panneau','game_reload':'Relire le panneau (efface la saisie)','game_invalid':'Valeur invalide.','game_error':'Erreur de communication ou de réponse.','game_storage_error':'Sauvegarde non confirmée par le panneau.','game_uncertain':'Confirmation perdue : résultat inconnu. Reconnectez-vous puis relisez le panneau avant de réessayer.','game_mismatch':'La réponse diffère de la demande. Relisez le panneau.','connect':'Connexion','dashboard':'Tableau de bord','settings':'Réglages',
+    'fr_FR': {'studio':'Studio LED','studio_title':'Studio publicitaire','studio_placeholder':'La création publicitaire sera ajoutée aux prochaines étapes.','cap_unknown':'Capacité publicitaire non confirmée','cap_on':'Publicité disponible','cap_off':'Publicité non encore disponible sur ce panneau','game_custom_color':'Couleur personnalisée','game_cancel':'Annuler','game_choose':'Choisir','game_selected_color':'Couleur sélectionnée','color_green':'Vert','color_red':'Rouge','color_blue':'Bleu','color_white':'Blanc','color_orange':'Orange','game_settings':'Réglages du jeu','game_instructions':'Valeurs confirmées par le panneau. Les modifications sont possibles uniquement lorsque le jeu est prêt.','game_offline':'Panneau non connecté.','game_busy':'Jeu non prêt : remettez-le à zéro.','game_loaded':'Valeurs lues sur le panneau.','game_saved':'Réglages appliqués et confirmés par le panneau.','game_target':'Temps cible','game_time_help':'Format mm:ss.cc, secondes de 00 à 59','game_margin':'Marge en centièmes','game_margin_help':'0 = exact ; les bornes non nulles sont exclues.','game_easy':'Couleur facile','game_hard':'Couleur difficile','game_hex_hint':'Six caractères hexadécimaux, par exemple 00FF00.','game_speed':'Traversée smiley (ms)','game_speed_help':'De 100 à 60000 ms par cycle','game_apply':'Appliquer au panneau','game_reload':'Relire le panneau (efface la saisie)','game_invalid':'Valeur invalide.','game_error':'Erreur de communication ou de réponse.','game_storage_error':'Sauvegarde non confirmée par le panneau.','game_uncertain':'Confirmation perdue : résultat inconnu. Reconnectez-vous puis relisez le panneau avant de réessayer.','game_mismatch':'La réponse diffère de la demande. Relisez le panneau.','connect':'Connexion','dashboard':'Tableau de bord','settings':'Réglages',
       'connect_title':'Connecter le panneau','instructions':'1. Rejoignez le réseau Wi-Fi AMZ-IT-XXXX dans les réglages du téléphone.\n\n2. Restez connecté même si le réseau est sans Internet. Si nécessaire, désactivez les données mobiles pour le test.\n\n3. Revenez ici et vérifiez la connexion.',
-      'address':'Adresse IPv4 du panneau','check':'Vérifier la connexion','checking':'Connexion…','connected':'Panneau connecté','disconnected':'Panneau déconnecté',
+      'address':'Nom du panneau','check':'Vérifier la connexion','checking':'Connexion…','connected':'Panneau connecté','disconnected':'Panneau déconnecté',
       'unconfirmed':'Aucun état confirmé','state':'État','mode':'Mode','refresh':'Actualiser','lang':'Langue','theme':'Apparence','light':'Clair','dark':'Sombre','system':'Système','theme_save_error':'Impossible de sauvegarder le thème.',
       'invalid_ip':'Adresse IPv4 invalide.','connection_error':'Connexion impossible. Vérifiez le Wi-Fi et l’adresse du panneau.',
       'security':'WebSocket non chiffré et sans clé API : réservé aux essais sur réseau de confiance.',
       'next':'Les réglages du jeu seront ajoutés à l’étape suivante.', 'last':'Dernier état confirmé par le panneau.',
       'pret':'Prêt','en_cours':'En cours','resultat':'Résultat','victoire':'Victoire','capture':'Capture','facile':'Facile','difficile':'Difficile','smiley':'Smiley'},
-    'en_US': {'game_custom_color':'Custom color','game_cancel':'Cancel','game_choose':'Select','game_selected_color':'Selected color','color_green':'Green','color_red':'Red','color_blue':'Blue','color_white':'White','color_orange':'Orange','game_settings':'Game settings','game_instructions':'Values confirmed by the panel. Changes are accepted only when the game is ready.','game_offline':'Panel disconnected.','game_busy':'Game not ready: reset it first.','game_loaded':'Values read from panel.','game_saved':'Settings applied and confirmed by the panel.','game_target':'Target time','game_time_help':'Format mm:ss.cc, seconds from 00 to 59','game_margin':'Margin in hundredths','game_margin_help':'0 = exact; nonzero boundaries are excluded.','game_easy':'Easy mode color','game_hard':'Hard mode color','game_hex_hint':'Six hexadecimal characters, for example 00FF00.','game_speed':'Smiley traversal (ms)','game_speed_help':'From 100 to 60000 ms per cycle','game_apply':'Apply to panel','game_reload':'Reload panel (discards edits)','game_invalid':'Invalid value.','game_error':'Communication or response error.','game_storage_error':'Panel did not confirm storage.','game_uncertain':'Confirmation lost: outcome unknown. Reconnect and reload before retrying.','game_mismatch':'Response differs from request. Reload the panel.','connect':'Connection','dashboard':'Dashboard','settings':'Settings',
+    'en_US': {'studio':'LED Studio','studio_title':'Advertising studio','studio_placeholder':'Advertising creation will be added in later steps.','cap_unknown':'Advertising capability unconfirmed','cap_on':'Advertising available','cap_off':'Advertising not yet available on this panel','game_custom_color':'Custom color','game_cancel':'Cancel','game_choose':'Select','game_selected_color':'Selected color','color_green':'Green','color_red':'Red','color_blue':'Blue','color_white':'White','color_orange':'Orange','game_settings':'Game settings','game_instructions':'Values confirmed by the panel. Changes are accepted only when the game is ready.','game_offline':'Panel disconnected.','game_busy':'Game not ready: reset it first.','game_loaded':'Values read from panel.','game_saved':'Settings applied and confirmed by the panel.','game_target':'Target time','game_time_help':'Format mm:ss.cc, seconds from 00 to 59','game_margin':'Margin in hundredths','game_margin_help':'0 = exact; nonzero boundaries are excluded.','game_easy':'Easy mode color','game_hard':'Hard mode color','game_hex_hint':'Six hexadecimal characters, for example 00FF00.','game_speed':'Smiley traversal (ms)','game_speed_help':'From 100 to 60000 ms per cycle','game_apply':'Apply to panel','game_reload':'Reload panel (discards edits)','game_invalid':'Invalid value.','game_error':'Communication or response error.','game_storage_error':'Panel did not confirm storage.','game_uncertain':'Confirmation lost: outcome unknown. Reconnect and reload before retrying.','game_mismatch':'Response differs from request. Reload the panel.','connect':'Connection','dashboard':'Dashboard','settings':'Settings',
       'connect_title':'Connect the panel','instructions':'1. Join the AMZ-IT-XXXX Wi-Fi network in your phone settings.\n\n2. Stay connected even if there is no Internet. If necessary, disable mobile data for testing.\n\n3. Return here and check the connection.',
-      'address':'Panel IPv4 address','check':'Check connection','checking':'Connecting…','connected':'Panel connected','disconnected':'Panel disconnected',
+      'address':'Panel name','check':'Check connection','checking':'Connecting…','connected':'Panel connected','disconnected':'Panel disconnected',
       'unconfirmed':'No confirmed status','state':'State','mode':'Mode','refresh':'Refresh','lang':'Language','theme':'Appearance','light':'Light','dark':'Dark','system':'System','theme_save_error':'Could not save the theme.',
       'invalid_ip':'Invalid IPv4 address.','connection_error':'Connection failed. Check Wi-Fi and the panel address.',
       'security':'Unencrypted WebSocket with no API key: use only for testing on a trusted network.',
@@ -48,20 +48,26 @@ class AppController extends GetxController {
   final prefs=SharedPreferencesAsync();
   Future<void> pendingThemeSave=Future.value();
   final service=PanelService();
-  final host=TextEditingController(text:'192.168.4.1');
+  static const String panneauIp='192.168.4.88';
+  static const String panneauNom='amz-adv.local';
   final selected=0.obs;
   final busy=false.obs;
   final connected=false.obs;
   final mode=''.obs;
   final state=''.obs;
   final error=''.obs;
+  final RxnBool advertising=RxnBool();
   Future<void> connect() async {
     if(busy.value)return;
-    busy.value=true; connected.value=false; error.value='';
+    busy.value=true; connected.value=false; error.value=''; advertising.value=null;
     try {
-      await service.connect(host.text.trim(), onStatus:(s){mode.value=s.mode;state.value=s.state;connected.value=true;},
-          onDisconnected:(){connected.value=false;error.value='connection_error';});
+      await service.connect(panneauIp, onStatus:(s){mode.value=s.mode;state.value=s.state;connected.value=true;},
+          onDisconnected:(){connected.value=false;advertising.value=null;error.value='connection_error';});
       selected.value=1;
+      try {
+        final available=await service.advertisingAvailable();
+        if(connected.value) advertising.value=available;
+      } catch (_) { advertising.value=null; }
     } catch(e) {connected.value=false;error.value=e is FormatException && e.message=='invalid_ip'?'invalid_ip':'connection_error';}
     finally {busy.value=false;}
   }
@@ -74,7 +80,7 @@ class AppController extends GetxController {
       catch (_) { Get.snackbar('theme'.tr,'theme_save_error'.tr); }
     });
   }
-  @override void onClose(){unawaited(service.close());host.dispose();super.onClose();}
+  @override void onClose(){unawaited(service.close());super.onClose();}
 }
 
 class AmzApp extends StatelessWidget {
@@ -100,6 +106,7 @@ class _HomeState extends State<Home> {
     final destinations=[
       NavigationDestination(icon:const Icon(Icons.wifi),label:'connect'.tr),
       NavigationDestination(icon:const Icon(Icons.dashboard_outlined),label:'dashboard'.tr),
+      NavigationDestination(icon:const Icon(Icons.auto_awesome_outlined),label:'studio'.tr),
       NavigationDestination(icon:const Icon(Icons.tune),label:'settings'.tr),
     ];
     final content=SafeArea(child:Center(child:ConstrainedBox(
@@ -115,11 +122,11 @@ class _HomeState extends State<Home> {
           onDestinationSelected:(v)=>c.selected.value=v,destinations:destinations),
     );
   });
-  List<Widget> pages()=>[connection(),dashboard(),settings()];
+  List<Widget> pages()=>[connection(),dashboard(),studio(),settings()];
   Widget connection()=>Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     Text('connect_title'.tr,style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:12),
     AmzSectionCard(child:Text('instructions'.tr)),const SizedBox(height:16),
-    TextField(controller:c.host,keyboardType:TextInputType.url,onChanged:(_){c.connected.value=false;c.error.value='';unawaited(c.service.close());},
+    TextFormField(initialValue:AppController.panneauNom,enabled:false,
         decoration:InputDecoration(labelText:'address'.tr,border:const OutlineInputBorder())),const SizedBox(height:12),
     Text('security'.tr),const SizedBox(height:16),
     FilledButton.icon(onPressed:c.busy.value?null:c.connect,icon:const Icon(Icons.link),label:Text((c.busy.value?'checking':'check').tr)),
@@ -131,6 +138,14 @@ class _HomeState extends State<Home> {
         title:Text((c.connected.value?'connected':'disconnected').tr),subtitle:Text((c.connected.value?'last':'unconfirmed').tr)),
       if(c.connected.value) ...[ListTile(title:Text('mode'.tr),trailing:Text(c.mode.value.tr)),ListTile(title:Text('state'.tr),trailing:Text(c.state.value.tr))]])),
     const SizedBox(height:12),OutlinedButton(onPressed:c.busy.value?null:c.connect,child:Text('refresh'.tr)),
+  ]);
+  Widget studio()=>Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+    Text('studio_title'.tr,style:Theme.of(context).textTheme.headlineSmall),
+    const SizedBox(height:16),
+    AmzSectionCard(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('studio_placeholder'.tr),const SizedBox(height:12),
+      Text((!c.connected.value || c.advertising.value==null ? 'cap_unknown' : c.advertising.value! ? 'cap_on' : 'cap_off').tr),
+    ])),
   ]);
   Widget settings()=>Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     Text('settings'.tr,style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:12),

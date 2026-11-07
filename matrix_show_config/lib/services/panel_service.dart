@@ -107,6 +107,15 @@ class PanelService {
     } finally { _pending.remove(id); }
   }
 
+  Future<bool> advertisingAvailable() async {
+    final response=await _request('get_capabilities');
+    final features=response['features'];
+    if(response['type']!='capabilities' || features is! Map || features['advertising'] is! bool) {
+      throw const FormatException('invalid_response');
+    }
+    return features['advertising'] as bool;
+  }
+
   Future<PanelConfig> getConfig() async {
     final response=await _request('get_config');
     if(response['type']!='config') throw const FormatException('invalid_response');

@@ -4,6 +4,7 @@
 #include <esp_system.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include "Config.h"
@@ -14,7 +15,11 @@ constexpr uint8_t LUMINOSITE=20;
 uint32_t CIBLE_CS=1000; // 10,00 secondes, en centiemes
 uint32_t marge = 0; // 0 = exact, sinon bornes strictes
 constexpr uint32_t MAX_MS=5999990UL;
-Adafruit_NeoMatrix matrix(32,8,PIN_LED, NEO_MATRIX_TOP+NEO_MATRIX_LEFT+NEO_MATRIX_COLUMNS+NEO_MATRIX_ZIGZAG, NEO_GRB+NEO_KHZ800);
+// Mapping valide sur le panneau actuel. Les dimensions du jeu restent fixes a 32 x 8.
+constexpr uint8_t MATRIX_MAPPING = NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG;
+constexpr neoPixelType MATRIX_LED_TYPE = NEO_GRB + NEO_KHZ800;
+constexpr uint32_t SCROLL_INTERVAL_MS = 70;
+Adafruit_NeoMatrix matrix(32,8,PIN_LED, MATRIX_MAPPING, MATRIX_LED_TYPE);
 // Chiffres 3 x 7 pour remplir la hauteur et conserver six chiffres.
 const uint8_t chiffres[10][7] = {
  {7,5,5,5,5,5,7},{2,6,2,2,2,2,7},{7,1,1,7,4,4,7},{7,1,1,7,1,1,7},{5,5,5,7,1,1,1},
@@ -106,7 +111,7 @@ void victoire(uint32_t ms) {
  uint32_t cs=ms/10;
  snprintf(message,sizeof(message),"BRAVO ! GAGNE : %02lu:%02lu.%02lu ",
    (unsigned long)(cs/6000), (unsigned long)((cs/100)%60), (unsigned long)(cs%100));
- scrollX=32; dernierScroll=millis()-70; etat=VICTOIRE;
+ scrollX=32; dernierScroll=millis()-SCROLL_INTERVAL_MS; etat=VICTOIRE;
 }
 
 // Configuration NVS : deux emplacements, version et somme de controle.
@@ -225,7 +230,18 @@ void traiterSocket(uint8_t client, WStype_t type, uint8_t* payload, size_t lengt
   else {
    reponse["id"]=id;
    const char *action=entree["type"] | "";
-   if(strcmp(action,"get_status")==0) {
+   if(strcmp(action,"get_capabilities")==0) {
+    // Annoncer uniquement les fonctions reellement disponibles.
+    reponse["type"]="capabilities";
+    reponse["matrix"]["width"]=32;
+    reponse["matrix"]["height"]=8;
+    reponse["features"]["game"]=true;
+    reponse["features"]["advertising"]=false;
+    reponse["features"]["playlist"]=false;
+    reponse["features"]["scheduler"]=false;
+    reponse["security"]["authentication"]=false;
+    reponse["security"]["transport_encrypted"]=false;
+   } else if(strcmp(action,"get_status")==0) {
     reponse["type"]="status";
     reponse["etat"]=etat==PRET?"pret":etat==EN_COURS?"en_cours":etat==CAPTURE?"capture":etat==VICTOIRE?"victoire":"resultat";
     reponse["mode"]=modeJeu==FACILE?"facile":modeJeu==DIFFICILE?"difficile":"smiley";
@@ -254,11 +270,19 @@ void activerServeur() {
  serveur.begin(); serveur.onEvent(traiterSocket);
 }
 bool demarrerWifi(const String &pass) {
- if(wifiActif){serveur.close();WiFi.softAPdisconnect(true);wifiActif=false;}
+ if(wifiActif){serveur.close();MDNS.end();WiFi.softAPdisconnect(true);wifiActif=false;}
  uint64_t id=ESP.getEfuseMac(); char suffixe[5]; snprintf(suffixe,sizeof suffixe,"%04X",(unsigned)(id&0xFFFF));
  nomReseau=String("AMZ-IT-")+suffixe;
  WiFi.mode(WIFI_AP);
+ const IPAddress ip(192,168,4,88), masque(255,255,255,0);
+ if(!WiFi.softAPConfig(ip,ip,masque)) {Serial.println("ERREUR : configuration IP SoftAP.");return false;}
  if(!WiFi.softAP(nomReseau.c_str(),pass.c_str())) {Serial.println("ERREUR : demarrage SoftAP.");return false;}
+ if(MDNS.begin("amz-adv")) {
+  MDNS.addService("ws","tcp",81);
+  Serial.println("Nom mDNS : amz-adv.local");
+ } else {
+  Serial.println("AVERTISSEMENT : mDNS indisponible ; l'adresse IP reste utilisable.");
+ }
  activerServeur(); wifiActif=true;
  Serial.print("Reseau : ");Serial.println(nomReseau); Serial.print("Adresse : ");Serial.println(WiFi.softAPIP());return true;
 }
@@ -361,7 +385,7 @@ void loop() {
   }
  }
  if(etat==CAPTURE && uint32_t(now-debutCapture)>=DUREE_CAPTURE_MS) {
-  scrollX=32; dernierScroll=now-70; etat=VICTOIRE;
+  scrollX=32; dernierScroll=now-SCROLL_INTERVAL_MS; etat=VICTOIRE;
  }
  if((etat==CAPTURE || etat==VICTOIRE) && !melodieTerminee) {
   if(uint32_t(now-debutMelodie) >= DUREE_MELODIE_MS) {
@@ -373,7 +397,7 @@ void loop() {
    ++prochaineNote;
   }
  }
- if(etat==VICTOIRE && uint32_t(now-dernierScroll)>=70){
+ if(etat==VICTOIRE && uint32_t(now-dernierScroll)>=SCROLL_INTERVAL_MS){
   dernierScroll=now; matrix.fillScreen(0); matrix.setTextColor(matrix.Color(255,180,0));
   matrix.setCursor(scrollX,0); matrix.print(message); matrix.show();
   --scrollX;
