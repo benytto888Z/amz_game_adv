@@ -142,6 +142,8 @@ class _LiveAdPageState extends State<LiveAdPage> {
       return 'pub_store_uncertain'.tr;
     }
 
+    if (e is PanelException && e.code == 'schedule_active') return 'schedule_active'.tr;
+
     if (e is PanelException && e.code == 'not_advertising') {
       return 'display_required'.tr;
     }
@@ -376,6 +378,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
           success = true;
           feedback = 'pub_store_success'.tr;
         });
+
       }
     } catch (e) {
       if (mounted) {

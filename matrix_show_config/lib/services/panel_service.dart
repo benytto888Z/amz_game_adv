@@ -253,6 +253,26 @@ class PanelService {
     }
   }
 
+  /// The panel must echo the exact values; a timeout does not prove failure.
+  Future<void> synchronizeClock(Map<String, int> clock) async {
+    final r = await _request('sync_clock', config: clock);
+    if (r['type'] != 'clock_synced' ||
+        clock.entries.any((e) => r[e.key] != e.value)) {
+      throw const FormatException('invalid_response');
+    }
+  }
+
+  Future<Map<String,dynamic>> scheduleGet() async {
+    final r=await _request('get_schedule');
+    if(r['type']!='schedule') throw const FormatException('invalid_response');
+    return r;
+  }
+  Future<Map<String,dynamic>> scheduleSet(Map<String,dynamic> config) async {
+    final r=await _request('set_schedule',config:config);
+    if(r['type']!='schedule') throw const FormatException('invalid_response');
+    return r;
+  }
+
   Future<Map<String, dynamic>> playlistGet() async {
     final r = await _request('get_playlist');
 

@@ -11,6 +11,8 @@
 #include "Config.h"
 #include "AdConfig.h"
 #include "PlaylistConfig.h"
+#include "HorlogeCampagne.h"
+#include "AgendaConfig.h"
 #include "bluesmiley24.h"
 
 constexpr int PIN_LED = 18;
@@ -26,36 +28,32 @@ uint32_t marge = 0;
 constexpr uint32_t MAX_MS = 5999990UL;
 
 constexpr uint8_t MATRIX_MAPPING =
-    NEO_MATRIX_TOP +
-    NEO_MATRIX_LEFT +
-    NEO_MATRIX_COLUMNS +
-    NEO_MATRIX_ZIGZAG;
+  NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG;
 
 constexpr neoPixelType MATRIX_LED_TYPE =
-    NEO_GRB + NEO_KHZ800;
+  NEO_GRB + NEO_KHZ800;
 
 constexpr uint32_t SCROLL_INTERVAL_MS = 70;
 
 Adafruit_NeoMatrix matrix(
-    32,
-    8,
-    PIN_LED,
-    MATRIX_MAPPING,
-    MATRIX_LED_TYPE
-);
+  32,
+  8,
+  PIN_LED,
+  MATRIX_MAPPING,
+  MATRIX_LED_TYPE);
 
 // Chiffres 3 × 7.
 const uint8_t chiffres[10][7] = {
-    {7, 5, 5, 5, 5, 5, 7},
-    {2, 6, 2, 2, 2, 2, 7},
-    {7, 1, 1, 7, 4, 4, 7},
-    {7, 1, 1, 7, 1, 1, 7},
-    {5, 5, 5, 7, 1, 1, 1},
-    {7, 4, 4, 7, 1, 1, 7},
-    {7, 4, 4, 7, 5, 5, 7},
-    {7, 1, 1, 1, 1, 1, 1},
-    {7, 5, 5, 7, 5, 5, 7},
-    {7, 5, 5, 7, 1, 1, 7}
+  { 7, 5, 5, 5, 5, 5, 7 },
+  { 2, 6, 2, 2, 2, 2, 7 },
+  { 7, 1, 1, 7, 4, 4, 7 },
+  { 7, 1, 1, 7, 1, 1, 7 },
+  { 5, 5, 5, 7, 1, 1, 1 },
+  { 7, 4, 4, 7, 1, 1, 7 },
+  { 7, 4, 4, 7, 5, 5, 7 },
+  { 7, 1, 1, 1, 1, 1, 1 },
+  { 7, 5, 5, 7, 5, 5, 7 },
+  { 7, 5, 5, 7, 1, 1, 7 }
 };
 
 struct Bouton {
@@ -81,8 +79,8 @@ struct Bouton {
   }
 };
 
-Bouton jeu{PIN_JEU};
-Bouton mode{PIN_MODE};
+Bouton jeu{ PIN_JEU };
+Bouton mode{ PIN_MODE };
 
 enum Etat {
   PRET,
@@ -95,6 +93,7 @@ enum Etat {
 constexpr uint32_t DUREE_CAPTURE_MS = 3000;
 uint32_t debutCapture = 0;
 Etat etat = PRET;
+HorlogeCampagne horlogeCampagne;
 
 // Le mode d'affichage est choisi par l'application.
 // Après redémarrage, le panneau démarre en mode Game.
@@ -139,21 +138,21 @@ int scrollX = 32;
 char message[48];
 
 const unsigned notesVictoire[] = {
-    1047,
-    1319,
-    1568,
-    2093
+  1047,
+  1319,
+  1568,
+  2093
 };
 
 const uint32_t dureesVictoire[] = {
-    120,
-    120,
-    120,
-    300
+  120,
+  120,
+  120,
+  300
 };
 
 const uint8_t nombreNotes =
-    sizeof(notesVictoire) / sizeof(notesVictoire[0]);
+  sizeof(notesVictoire) / sizeof(notesVictoire[0]);
 
 const uint32_t DUREE_MELODIE_MS = 5000;
 
@@ -176,10 +175,10 @@ uint32_t intervallePub = 70;
 // L'identifiant est partagé avec l'application.
 // 0 = aucune.
 const uint8_t iconesPub[4][5] = {
-    {0, 0, 0, 0, 0},
-    {10, 31, 31, 14, 4},
-    {14, 21, 17, 21, 14},
-    {4, 21, 14, 31, 10}
+  { 0, 0, 0, 0, 0 },
+  { 10, 31, 31, 14, 4 },
+  { 14, 21, 17, 21, 14 },
+  { 4, 21, 14, 31, 10 }
 };
 
 uint8_t iconePub = 0;
@@ -189,13 +188,13 @@ uint8_t phaseEffetPub = 0;
 uint32_t dernierEffetPub = 0;
 
 const uint32_t couleursEffetPub[] = {
-    0xff0000,
-    0xff8000,
-    0xffff00,
-    0x00ff00,
-    0x00ffff,
-    0x0000ff,
-    0xff00ff
+  0xff0000,
+  0xff8000,
+  0xffff00,
+  0x00ff00,
+  0x00ffff,
+  0x0000ff,
+  0xff00ff
 };
 
 // Limite logicielle : 20 / 255.
@@ -236,11 +235,11 @@ void valeursPub(JsonDocument &d) {
   d["effet"] = effetPub;
 
   d["lecture"] =
-      etatPub == PUB_PLAY
-          ? "play"
-          : etatPub == PUB_PAUSE
-                ? "pause"
-                : "stop";
+    etatPub == PUB_PLAY
+      ? "play"
+    : etatPub == PUB_PAUSE
+      ? "pause"
+      : "stop";
 
   d["sauvegarde"] = pubSauvee;
   d["stockage_disponible"] = stockagePubPret;
@@ -255,15 +254,15 @@ uint32_t checksumPub(const AdConfig &c) {
   uint32_t h = 2166136261UL;
 
   const uint32_t nombres[] = {
-      c.signature,
-      c.version,
-      c.generation,
-      c.luminosite,
-      c.scroll,
-      c.icone,
-      c.effet,
-      c.couleur,
-      c.intervalle
+    c.signature,
+    c.version,
+    c.generation,
+    c.luminosite,
+    c.scroll,
+    c.icone,
+    c.effet,
+    c.couleur,
+    c.intervalle
   };
 
   for (uint32_t v : nombres) {
@@ -282,25 +281,12 @@ uint32_t checksumPub(const AdConfig &c) {
 }
 
 bool pubValide(const AdConfig &c) {
-  if (c.signature != SIGNATURE_PUB ||
-      c.version != VERSION_PUB ||
-      c.checksum != checksumPub(c) ||
-      !memchr(c.texte, '\0', sizeof c.texte) ||
-      c.texte[0] == '\0' ||
-      c.couleur > 0xffffff ||
-      c.intervalle < 20 ||
-      c.intervalle > 500 ||
-      c.luminosite < 1 ||
-      c.luminosite > 20 ||
-      c.scroll > 1 ||
-      c.icone > 3 ||
-      c.effet > 2) {
+  if (c.signature != SIGNATURE_PUB || c.version != VERSION_PUB || c.checksum != checksumPub(c) || !memchr(c.texte, '\0', sizeof c.texte) || c.texte[0] == '\0' || c.couleur > 0xffffff || c.intervalle < 20 || c.intervalle > 500 || c.luminosite < 1 || c.luminosite > 20 || c.scroll > 1 || c.icone > 3 || c.effet > 2) {
     return false;
   }
 
   for (size_t i = 0; c.texte[i]; i++) {
-    if ((uint8_t)c.texte[i] < 32 ||
-        (uint8_t)c.texte[i] > 126) {
+    if ((uint8_t)c.texte[i] < 32 || (uint8_t)c.texte[i] > 126) {
       return false;
     }
   }
@@ -309,12 +295,11 @@ bool pubValide(const AdConfig &c) {
 }
 
 bool lireSlotPub(const char *cle, AdConfig &c) {
-  return stockagePub.getBytesLength(cle) == sizeof c &&
-         stockagePub.getBytes(cle, &c, sizeof c) == sizeof c &&
-         pubValide(c);
+  return stockagePub.getBytesLength(cle) == sizeof c && stockagePub.getBytes(cle, &c, sizeof c) == sizeof c && pubValide(c);
 }
 
 void chargerPub() {
+
   if (!stockagePubPret) return;
 
   AdConfig a = {};
@@ -356,8 +341,7 @@ void chargerPub() {
   pubSale = true;
 
   Serial.println(
-      "Publicite restauree ; en attente du mode Advertising."
-  );
+    "Publicite restauree ; en attente du mode Advertising.");
 }
 
 bool enregistrerPub() {
@@ -381,18 +365,10 @@ bool enregistrerPub() {
 
   if (!pubValide(c)) return false;
 
-  if (pubSauvee &&
-      strcmp(c.texte, dernierePub.texte) == 0 &&
-      c.couleur == dernierePub.couleur &&
-      c.intervalle == dernierePub.intervalle &&
-      c.luminosite == dernierePub.luminosite &&
-      c.scroll == dernierePub.scroll &&
-      c.icone == dernierePub.icone &&
-      c.effet == dernierePub.effet) {
+  if (pubSauvee && strcmp(c.texte, dernierePub.texte) == 0 && c.couleur == dernierePub.couleur && c.intervalle == dernierePub.intervalle && c.luminosite == dernierePub.luminosite && c.scroll == dernierePub.scroll && c.icone == dernierePub.icone && c.effet == dernierePub.effet) {
     AdConfig verifie = {};
 
-    if (lireSlotPub(slotPub == 0 ? "pub0" : "pub1", verifie) &&
-        memcmp(&verifie, &dernierePub, sizeof verifie) == 0) {
+    if (lireSlotPub(slotPub == 0 ? "pub0" : "pub1", verifie) && memcmp(&verifie, &dernierePub, sizeof verifie) == 0) {
       return true;
     }
   }
@@ -406,8 +382,7 @@ bool enregistrerPub() {
 
   AdConfig verifie = {};
 
-  if (!lireSlotPub(cle, verifie) ||
-      memcmp(&c, &verifie, sizeof c) != 0) {
+  if (!lireSlotPub(cle, verifie) || memcmp(&c, &verifie, sizeof c) != 0) {
     return false;
   }
 
@@ -442,11 +417,11 @@ uint32_t checksumPlaylist(const PlaylistConfig &p) {
   uint32_t h = 2166136261UL;
 
   const uint32_t valeurs[] = {
-      p.signature,
-      p.version,
-      p.generation,
-      p.dureeSecondes,
-      p.nombre
+    p.signature,
+    p.version,
+    p.generation,
+    p.dureeSecondes,
+    p.nombre
   };
 
   for (uint32_t v : valeurs) {
@@ -469,12 +444,7 @@ uint32_t checksumPlaylist(const PlaylistConfig &p) {
 }
 
 bool playlistValide(const PlaylistConfig &p) {
-  if (p.signature != PLAYLIST_SIG ||
-      p.version != PLAYLIST_VERSION ||
-      p.nombre > PLAYLIST_MAX ||
-      p.dureeSecondes < 3 ||
-      p.dureeSecondes > 300 ||
-      p.checksum != checksumPlaylist(p)) {
+  if (p.signature != PLAYLIST_SIG || p.version != PLAYLIST_VERSION || p.nombre > PLAYLIST_MAX || p.dureeSecondes < 3 || p.dureeSecondes > 300 || p.checksum != checksumPlaylist(p)) {
     return false;
   }
 
@@ -486,9 +456,7 @@ bool playlistValide(const PlaylistConfig &p) {
 }
 
 bool lirePlaylist(const char *cle, PlaylistConfig &p) {
-  return stockagePub.getBytesLength(cle) == sizeof p &&
-         stockagePub.getBytes(cle, &p, sizeof p) == sizeof p &&
-         playlistValide(p);
+  return stockagePub.getBytesLength(cle) == sizeof p && stockagePub.getBytes(cle, &p, sizeof p) == sizeof p && playlistValide(p);
 }
 
 void chargerPlaylist() {
@@ -513,8 +481,7 @@ void chargerPlaylist() {
     playlist = b;
     playlistSlot = 1;
   } else if (
-      stockagePub.getBytesLength("list0") ||
-      stockagePub.getBytesLength("list1")) {
+    stockagePub.getBytesLength("list0") || stockagePub.getBytesLength("list1")) {
     playlistErreur = true;
   }
 }
@@ -532,15 +499,13 @@ bool sauverPlaylist(PlaylistConfig candidate) {
   int cible = playlistSlot == 0 ? 1 : 0;
   const char *cle = cible == 0 ? "list0" : "list1";
 
-  if (stockagePub.putBytes(cle, &candidate, sizeof candidate) !=
-      sizeof candidate) {
+  if (stockagePub.putBytes(cle, &candidate, sizeof candidate) != sizeof candidate) {
     return false;
   }
 
   PlaylistConfig lu = {};
 
-  if (!lirePlaylist(cle, lu) ||
-      memcmp(&candidate, &lu, sizeof lu) != 0) {
+  if (!lirePlaylist(cle, lu) || memcmp(&candidate, &lu, sizeof lu) != 0) {
     return false;
   }
 
@@ -603,10 +568,7 @@ void actualiserPlaylist(uint32_t now) {
   uint32_t delta = now - playlistDernier;
   playlistDernier = now;
 
-  if (!playlistActive ||
-      modeAffichage != MODE_ADVERTISING ||
-      etatPub != PUB_PLAY ||
-      playlist.nombre == 0) {
+  if (!playlistActive || modeAffichage != MODE_ADVERTISING || etatPub != PUB_PLAY || playlist.nombre == 0) {
     return;
   }
 
@@ -619,6 +581,113 @@ void actualiserPlaylist(uint32_t now) {
   }
 }
 
+// Une règle persistante ; le planning ne change jamais le mode Game/Advertising.
+const uint32_t AGENDA_SIG = 0x414D5A53, AGENDA_VERSION = 1;
+AgendaConfig agenda = {};
+int agendaSlot = -1, agendaPhase = -1;
+bool agendaErreur = false;
+uint32_t hashAgenda(const AgendaConfig &a) {
+  uint32_t h = 2166136261UL;
+  const uint32_t v[] = { a.signature, a.version, a.generation, a.regle.debutDate, a.regle.finDate,
+                         a.regle.debutMinute, a.regle.finMinute, a.regle.jours, a.actif };
+  for (uint32_t n : v)
+    for (int i = 0; i < 4; i++) {
+      h ^= (n >> (i * 8)) & 255;
+      h *= 16777619UL;
+    }
+  return h;
+}
+bool agendaValide(const AgendaConfig &a) {
+  return a.signature == AGENDA_SIG && a.version == AGENDA_VERSION && a.actif <= 1 && regleCampagneValide(a.regle) && a.checksum == hashAgenda(a);
+}
+bool lireAgenda(const char *cle, AgendaConfig &a) {
+  return stockagePub.getBytesLength(cle) == sizeof a && stockagePub.getBytes(cle, &a, sizeof a) == sizeof a && agendaValide(a);
+}
+void chargerAgenda() {
+  agenda = {};
+  agenda.signature = AGENDA_SIG;
+  agenda.version = AGENDA_VERSION;
+  agenda.regle = { 20260101, 20991231, 540, 1080, 127 };
+  agenda.checksum = hashAgenda(agenda);
+  if (!stockagePubPret) return;
+  AgendaConfig a = {}, b = {};
+  bool va = lireAgenda("agenda0", a), vb = lireAgenda("agenda1", b);
+  if (va && (!vb || (int32_t)(a.generation - b.generation) > 0)) {
+    agenda = a;
+    agendaSlot = 0;
+  } else if (vb) {
+    agenda = b;
+    agendaSlot = 1;
+  } else if (stockagePub.getBytesLength("agenda0") || stockagePub.getBytesLength("agenda1")) agendaErreur = true;
+}
+bool sauverAgenda(AgendaConfig next) {
+  if (!stockagePubPret || agendaErreur) return false;
+  next.signature = AGENDA_SIG;
+  next.version = AGENDA_VERSION;
+  next.generation = agenda.generation + 1;
+  next.checksum = hashAgenda(next);
+  if (!agendaValide(next)) return false;
+  int target = agendaSlot == 0 ? 1 : 0;
+  const char *key = target == 0 ? "agenda0" : "agenda1";
+  if (stockagePub.putBytes(key, &next, sizeof next) != sizeof next) return false;
+  AgendaConfig check = {};
+  if (!lireAgenda(key, check) || memcmp(&next, &check, sizeof next) != 0) return false;
+  agenda = check;
+  agendaSlot = target;
+  agendaPhase = -1;
+  return true;
+}
+void valeursAgenda(JsonDocument &d) {
+  d["actif"] = agenda.actif != 0;
+  d["debut_date"] = agenda.regle.debutDate;
+  d["fin_date"] = agenda.regle.finDate;
+  d["debut_minute"] = agenda.regle.debutMinute;
+  d["fin_minute"] = agenda.regle.finMinute;
+  d["jours"] = agenda.regle.jours;
+  d["horloge_valide"] = horlogeCampagne.fiable();
+  d["secours_disponible"] = pubSauvee;
+  d["stockage_disponible"] = stockagePubPret && !agendaErreur;
+}
+void actualiserAgenda(uint32_t now) {
+  if (!agenda.actif || modeAffichage != MODE_ADVERTISING) {
+    agendaPhase = -1;
+    return;
+  }
+  tm local = {};
+  bool dans = horlogeCampagne.heureLocale(local) && campagneDansPlage(agenda.regle, local);
+  bool liste = dans && playlist.nombre > 0 && !playlistErreur;
+  int phase = liste ? 1 : 0;
+  if (phase == agendaPhase) return;
+  agendaPhase = phase;
+  if (liste) {
+    playlistIndex = 0;
+    playlistEcoule = 0;
+    playlistDernier = now;
+    playlistActive = true;
+    chargerElementPlaylist(0);
+    etatPub = PUB_PLAY;
+  } else {
+    playlistActive = false;
+    if (pubSauvee && pubValide(dernierePub)) {
+      strlcpy(textePub, dernierePub.texte, sizeof textePub);
+      couleurPub = dernierePub.couleur;
+      intervallePub = dernierePub.intervalle;
+      luminositePub = dernierePub.luminosite;
+      scrollPub = dernierePub.scroll != 0;
+      iconePub = dernierePub.icone;
+      effetPub = dernierePub.effet;
+      phaseEffetPub = 0;
+      dernierEffetPub = now;
+      positionPub = scrollPub ? 32 : 0;
+      etatPub = PUB_PLAY;
+      pubSale = true;
+    } else {
+      etatPub = PUB_STOP;
+      matrix.fillScreen(0);
+      matrix.show();
+    }
+  }
+}
 void afficherPub() {
   matrix.setBrightness(luminositePub);
   matrix.fillScreen(0);
@@ -633,15 +702,14 @@ void afficherPub() {
   }
 
   const uint32_t rgbEffet =
-      effetPub == 2
-          ? couleursEffetPub[phaseEffetPub % 7]
-          : couleurPub;
+    effetPub == 2
+      ? couleursEffetPub[phaseEffetPub % 7]
+      : couleurPub;
 
   const uint16_t couleur = matrix.Color(
-      (rgbEffet >> 16) & 255,
-      (rgbEffet >> 8) & 255,
-      rgbEffet & 255
-  );
+    (rgbEffet >> 16) & 255,
+    (rgbEffet >> 8) & 255,
+    rgbEffet & 255);
 
   matrix.setTextColor(couleur);
 
@@ -664,9 +732,7 @@ void afficherPub() {
 
 void actualiserPub(uint32_t now) {
   // Aucun rendu publicitaire en mode Game.
-  if (modeAffichage != MODE_ADVERTISING ||
-      etat != PRET ||
-      etatPub == PUB_STOP) {
+  if (modeAffichage != MODE_ADVERTISING || etat != PRET || etatPub == PUB_STOP) {
     dernierEffetPub = now;
     return;
   }
@@ -674,8 +740,7 @@ void actualiserPub(uint32_t now) {
   bool redessiner = pubSale;
 
   if (etatPub == PUB_PLAY) {
-    if (effetPub != 0 &&
-        uint32_t(now - dernierEffetPub) >= 1000) {
+    if (effetPub != 0 && uint32_t(now - dernierEffetPub) >= 1000) {
       phaseEffetPub = (phaseEffetPub + 1) % 7;
 
       if (effetPub == 1) {
@@ -686,13 +751,10 @@ void actualiserPub(uint32_t now) {
       redessiner = true;
     }
 
-    if (scrollPub &&
-        !pubSale &&
-        uint32_t(now - dernierPub) >= intervallePub) {
+    if (scrollPub && !pubSale && uint32_t(now - dernierPub) >= intervallePub) {
       --positionPub;
 
-      if (positionPub <=
-          -(int)(strlen(textePub) * 6 + (iconePub ? 6 : 0))) {
+      if (positionPub <= -(int)(strlen(textePub) * 6 + (iconePub ? 6 : 0))) {
         positionPub = 32;
       }
 
@@ -745,15 +807,14 @@ void afficherTemps(uint32_t ms) {
   int c = cs % 100;
 
   uint32_t rgb =
-      modeJeu == DIFFICILE
-          ? couleurDifficile
-          : couleurFacile;
+    modeJeu == DIFFICILE
+      ? couleurDifficile
+      : couleurFacile;
 
   uint16_t couleur = matrix.Color(
-      (rgb >> 16) & 255,
-      (rgb >> 8) & 255,
-      rgb & 255
-  );
+    (rgb >> 16) & 255,
+    (rgb >> 8) & 255,
+    rgb & 255);
 
   matrix.fillScreen(0);
 
@@ -777,12 +838,11 @@ void afficherTemps(uint32_t ms) {
 void afficherSmiley(int x, bool visible) {
   matrix.fillScreen(0);
   matrix.drawRect(
-      cadreX,
-      CADRE_Y,
-      7,
-      7,
-      matrix.Color(0, 0, 255)
-  );
+    cadreX,
+    CADRE_Y,
+    7,
+    7,
+    matrix.Color(0, 0, 255));
 
   if (visible) {
     for (int y = 0; y < 5; y++) {
@@ -791,10 +851,9 @@ void afficherSmiley(int x, bool visible) {
 
         if (ligne & (1 << (4 - dx))) {
           matrix.drawPixel(
-              x + dx,
-              SMILEY_Y + y,
-              matrix.Color(255, 255, 0)
-          );
+            x + dx,
+            SMILEY_Y + y,
+            matrix.Color(255, 255, 0));
         }
       }
     }
@@ -826,9 +885,9 @@ bool estGagnant(uint32_t ms) {
   uint32_t tempsCS = ms / 10;
 
   uint32_t ecart =
-      tempsCS >= CIBLE_CS
-          ? tempsCS - CIBLE_CS
-          : CIBLE_CS - tempsCS;
+    tempsCS >= CIBLE_CS
+      ? tempsCS - CIBLE_CS
+      : CIBLE_CS - tempsCS;
 
   return marge == 0 ? ecart == 0 : ecart < marge;
 }
@@ -837,13 +896,12 @@ void victoire(uint32_t ms) {
   uint32_t cs = ms / 10;
 
   snprintf(
-      message,
-      sizeof(message),
-      "BRAVO ! GAGNE : %02lu:%02lu.%02lu ",
-      (unsigned long)(cs / 6000),
-      (unsigned long)((cs / 100) % 60),
-      (unsigned long)(cs % 100)
-  );
+    message,
+    sizeof(message),
+    "BRAVO ! GAGNE : %02lu:%02lu.%02lu ",
+    (unsigned long)(cs / 6000),
+    (unsigned long)((cs / 100) % 60),
+    (unsigned long)(cs % 100));
 
   scrollX = 32;
   dernierScroll = millis() - SCROLL_INTERVAL_MS;
@@ -874,14 +932,14 @@ bool ligneTropLongue = false;
 
 uint32_t checksumConfig(const Config &c) {
   const uint32_t mots[] = {
-      c.signature,
-      c.version,
-      c.generation,
-      c.cible,
-      c.margeCs,
-      c.facile,
-      c.difficile,
-      c.traversee
+    c.signature,
+    c.version,
+    c.generation,
+    c.cible,
+    c.margeCs,
+    c.facile,
+    c.difficile,
+    c.traversee
   };
 
   uint32_t h = 2166136261UL;
@@ -1215,11 +1273,29 @@ void traiterSocket(
         reponse["features"]["advertising"] = true;
         reponse["features"]["playlist"] =
             stockagePubPret && !playlistErreur;
-        reponse["features"]["scheduler"] = false;
+        reponse["features"]["scheduler"] = stockagePubPret && !agendaErreur;
+
+        reponse["features"]["clock_sync"] = true;
 
         reponse["security"]["authentication"] = false;
         reponse["security"]["transport_encrypted"] = false;
 
+      } else if (strcmp(action, "sync_clock") == 0) {
+        JsonObjectConst p=entree["config"].as<JsonObjectConst>();
+        uint32_t utc=0, limite=0, transition=0;
+        bool types=!p.isNull() && p.size()==5 &&
+          champEntier(p,"utc_s",946684800UL,4102444799UL,utc) &&
+          champEntier(p,"valid_until_s",946684801UL,4102444800UL,limite) &&
+          champEntier(p,"transition_s",0,4102444799UL,transition) &&
+          p["offset_s"].is<int32_t>() && p["next_offset_s"].is<int32_t>();
+        if(!types || !horlogeCampagne.synchroniser(utc,p["offset_s"].as<int32_t>(),
+             transition,p["next_offset_s"].as<int32_t>(),limite,millis())) {
+          reponse["type"]="error"; reponse["code"]="invalid_clock";
+        } else {
+          reponse["type"]="clock_synced";reponse["utc_s"]=utc;
+          reponse["valid_until_s"]=limite;reponse["offset_s"]=p["offset_s"];
+          reponse["transition_s"]=transition;reponse["next_offset_s"]=p["next_offset_s"];
+        }
       } else if (strcmp(action, "get_status") == 0) {
         reponse["type"] = "status";
 
@@ -1242,6 +1318,7 @@ void traiterSocket(
                       : "smiley";
 
         reponse["dernier_temps_ms"] = resultat;
+        reponse["clock_valid"] = horlogeCampagne.fiable();
 
         reponse["display_mode"] =
             modeAffichage == MODE_GAME
@@ -1309,7 +1386,9 @@ void traiterSocket(
         bool stocker = false;
         const char *erreur = nullptr;
 
-        if (modeAffichage != MODE_ADVERTISING) {
+        if (agenda.actif) {
+          erreur = "schedule_active";
+        } else if (modeAffichage != MODE_ADVERTISING) {
           erreur = "not_advertising";
 
         } else if (!stockagePubPret || playlistErreur) {
@@ -1388,6 +1467,21 @@ void traiterSocket(
           valeursPlaylist(reponse);
         }
 
+      } else if(strcmp(action,"get_schedule")==0) {
+        reponse["type"]="schedule";valeursAgenda(reponse);
+      } else if(strcmp(action,"set_schedule")==0) {
+        JsonObjectConst p=entree["config"].as<JsonObjectConst>();uint32_t deb=0,fin=0,md=0,mf=0,j=0;
+        if(p.isNull() || p.size()!=6 || !p["actif"].is<bool>() ||
+          !champEntier(p,"debut_date",20000101,20991231,deb) || !champEntier(p,"fin_date",20000101,20991231,fin) ||
+          !champEntier(p,"debut_minute",0,1439,md) || !champEntier(p,"fin_minute",1,1440,mf) ||
+          !champEntier(p,"jours",1,127,j)) {reponse["type"]="error";reponse["code"]="invalid_config";}
+        else {
+          AgendaConfig next=agenda;next.regle={deb,fin,(uint16_t)md,(uint16_t)mf,(uint8_t)j};next.actif=p["actif"].as<bool>()?1:0;
+          if(!regleCampagneValide(next.regle)) {reponse["type"]="error";reponse["code"]="invalid_config";}
+          else if(next.actif && (!pubSauvee || playlist.nombre==0 || playlistErreur)) {reponse["type"]="error";reponse["code"]="schedule_requires_content";}
+          else if(!sauverAgenda(next)) {reponse["type"]="error";reponse["code"]="schedule_storage_uncertain";}
+          else {reponse["type"]="schedule";valeursAgenda(reponse);}
+        }
       } else if (strcmp(action, "get_live_ad") == 0) {
         reponse["type"] = "live_ad";
         valeursPub(reponse);
@@ -1414,7 +1508,10 @@ void traiterSocket(
           }
         }
 
-        if (modeAffichage != MODE_ADVERTISING) {
+        if (agenda.actif) {
+          reponse["type"] = "error";
+          reponse["code"] = "schedule_active";
+        } else if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
 
@@ -1458,7 +1555,10 @@ void traiterSocket(
         }
 
       } else if (strcmp(action, "save_live_ad") == 0) {
-        if (modeAffichage != MODE_ADVERTISING) {
+        if (agenda.actif) {
+          reponse["type"] = "error";
+          reponse["code"] = "schedule_active";
+        } else if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
 
@@ -1482,7 +1582,10 @@ void traiterSocket(
       } else if (strcmp(action, "live_ad_action") == 0) {
         const char *cmd = entree["action"] | "";
 
-        if (modeAffichage != MODE_ADVERTISING) {
+        if (agenda.actif) {
+          reponse["type"] = "error";
+          reponse["code"] = "schedule_active";
+        } else if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
 
@@ -1492,6 +1595,8 @@ void traiterSocket(
 
         } else if (strcmp(cmd, "play") == 0) {
           etatPub = PUB_PLAY;
+
+
           pubSale = true;
 
           reponse["type"] = "live_ad_state";
@@ -1742,6 +1847,7 @@ void setup() {
   } else {
     Serial.println("ERREUR : stockage publicitaire indisponible.");
   }
+  chargerAgenda();
 
   if (identifiants.begin("amz-acces", false)) {
     chargerWifi();
@@ -1763,6 +1869,7 @@ void loop() {
   }
 
   uint32_t now = millis();
+  horlogeCampagne.update(now);
 
   if (sonActif && uint32_t(now - sonDebut) >= sonDuree) {
     arreterSon();
@@ -1810,7 +1917,8 @@ void loop() {
         int tirage = (int)(esp_random() % 9);
 
         if (tirage >= ancien - 16) {
-          ++tirage;
+
+                    ++tirage;
         }
 
         cadreX = 16 + tirage;
@@ -1974,6 +2082,7 @@ void loop() {
     }
   }
 
+  actualiserAgenda(now);
   actualiserPlaylist(now);
   actualiserPub(now);
 
@@ -2007,3 +2116,4 @@ void loop() {
     }
   }
 }
+

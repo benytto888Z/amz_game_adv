@@ -88,6 +88,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
     if (e is PanelException) {
       switch (e.code) {
+        case 'schedule_active':
+          return t('Désactivez la programmation avant de modifier la playlist.', 'Disable the schedule before changing the playlist.');
+
         case 'playlist_full':
           return t(
             'La playlist contient déjà 5 messages.',

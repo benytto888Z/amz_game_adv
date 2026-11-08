@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/amz_light_theme.dart';
@@ -8,6 +9,8 @@ import 'core/design_system/spacing.dart';
 import 'core/design_system/components/amz_section_card.dart';
 import 'core/responsive/breakpoints.dart';
 import 'features/playlists/playlist_page.dart';
+import 'features/schedule/schedule_page.dart';
+import 'services/phone_clock.dart';
 import 'services/panel_service.dart';
 import 'features/game_settings/game_settings_page.dart';
 import 'features/live_ad/live_ad_page.dart';
@@ -129,6 +132,8 @@ class Texts extends Translations {
       'live_reload': 'Relire le panneau (efface les modifications)',
       'live_open': 'Contrôle en direct',
       'playlist_open': 'Playlist',
+      'schedule_open': 'Programmation',
+      'schedule_active': 'Désactivez la programmation avant le contrôle direct.',
 
       'studio': 'Studio LED',
       'studio_title': 'Studio publicitaire',
@@ -314,6 +319,8 @@ class Texts extends Translations {
       'live_reload': 'Reload panel (discard edits)',
       'live_open': 'Live control',
       'playlist_open': 'Playlist',
+      'schedule_open': 'Schedule',
+      'schedule_active': 'Disable the schedule before using live control.',
 
       'studio': 'LED Studio',
       'studio_title': 'Advertising studio',
@@ -424,6 +431,7 @@ class AppController extends GetxController {
   final modeError = ''.obs;
   final error = ''.obs;
   final RxnBool advertising = RxnBool();
+  Timer? _clockTimer; bool _clockBusy = false;
 
   Future<void> connect() async {
     if (busy.value) return;
@@ -452,6 +460,9 @@ class AppController extends GetxController {
       );
 
       selected.value = 1;
+      unawaited(syncClock());
+      _clockTimer?.cancel();
+      _clockTimer=Timer.periodic(const Duration(minutes:30), (_) => unawaited(syncClock()));
 
       try {
         final available = await service.advertisingAvailable();
@@ -470,6 +481,16 @@ class AppController extends GetxController {
     } finally {
       busy.value = false;
     }
+  }
+
+  Future<void> syncClock() async {
+    if(!connected.value || _clockBusy)return;
+    _clockBusy=true;
+    try {
+      final clock=await compute(phoneClockSnapshot,0);
+      if(connected.value) await service.synchronizeClock(clock);
+    } catch (_) { /* L'écran de programmation permet de vérifier et réessayer. */ }
+    finally {_clockBusy=false;}
   }
 
   Future<void> switchDisplay(String target) async {
@@ -511,6 +532,7 @@ class AppController extends GetxController {
 
   @override
   void onClose() {
+    _clockTimer?.cancel();
     unawaited(service.close());
     super.onClose();
   }
@@ -604,34 +626,34 @@ class _HomeState extends State<Home> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AMZ-IT • GAME')),
-      body: wide
-          ? Row(
-        children: [
-          NavigationRail(
-            selectedIndex: c.selected.value,
-            onDestinationSelected: (v) => c.selected.value = v,
-            labelType: NavigationRailLabelType.all,
-            destinations: destinations
-                .map(
-                  (d) => NavigationRailDestination(
-                icon: d.icon,
-                label: Text(d.label),
-              ),
-            )
-                .toList(),
-          ),
-          Expanded(child: content),
-        ],
-      )
-          : content,
-      bottomNavigationBar: wide
-          ? null
-          : NavigationBar(
-        selectedIndex: c.selected.value,
-        onDestinationSelected: (v) => c.selected.value = v,
-        destinations: destinations,
-      ),
+        appBar: AppBar(title: const Text('AMZ-IT • GAME')),
+        body: wide
+            ? Row(
+          children: [
+            NavigationRail(
+              selectedIndex: c.selected.value,
+              onDestinationSelected: (v) => c.selected.value = v,
+              labelType: NavigationRailLabelType.all,
+              destinations: destinations
+                  .map(
+                    (d) => NavigationRailDestination(
+                  icon: d.icon,
+                  label: Text(d.label),
+                ),
+              )
+                  .toList(),
+            ),
+            Expanded(child: content),
+          ],
+        )
+            : content,
+        bottomNavigationBar: wide
+            ? null
+            : NavigationBar(
+          selectedIndex: c.selected.value,
+          onDestinationSelected: (v) => c.selected.value = v,
+          destinations: destinations,
+        ),
     );
   });
 
@@ -852,6 +874,14 @@ class _HomeState extends State<Home> {
               )
                   : null,
               child: Text('playlist_open'.tr),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: c.connected.value && c.advertising.value == true
+                  ? () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => SchedulePage(service: c.service, connected: c.connected)))
+                  : null,
+              child: Text('schedule_open'.tr),
             ),
           ],
         ),
