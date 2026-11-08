@@ -10,6 +10,7 @@
 
 #include "Config.h"
 #include "AdConfig.h"
+#include "PlaylistConfig.h"
 #include "bluesmiley24.h"
 
 constexpr int PIN_LED = 18;
@@ -338,11 +339,7 @@ void chargerPub() {
   generationPub = dernierePub.generation;
   pubSauvee = true;
 
-  strlcpy(
-      textePub,
-      dernierePub.texte,
-      sizeof textePub
-  );
+  strlcpy(textePub, dernierePub.texte, sizeof textePub);
 
   couleurPub = dernierePub.couleur;
   intervallePub = dernierePub.intervalle;
@@ -384,8 +381,6 @@ bool enregistrerPub() {
 
   if (!pubValide(c)) return false;
 
-  // Ne pas réécrire si les données sauvegardées sont identiques
-  // et que l'emplacement peut toujours être relu.
   if (pubSauvee &&
       strcmp(c.texte, dernierePub.texte) == 0 &&
       c.couleur == dernierePub.couleur &&
@@ -422,6 +417,206 @@ bool enregistrerPub() {
   pubSauvee = true;
 
   return true;
+}
+
+// ------------------------------------------------------------
+// Playlist : cinq publicités maximum et durée commune.
+// ------------------------------------------------------------
+
+const uint32_t PLAYLIST_SIG = 0x414D5A4C;
+const uint32_t PLAYLIST_VERSION = 1;
+
+PlaylistConfig playlist = {};
+
+int playlistSlot = -1;
+
+bool playlistActive = false;
+bool playlistErreur = false;
+
+uint8_t playlistIndex = 0;
+
+uint32_t playlistEcoule = 0;
+uint32_t playlistDernier = 0;
+
+uint32_t checksumPlaylist(const PlaylistConfig &p) {
+  uint32_t h = 2166136261UL;
+
+  const uint32_t valeurs[] = {
+      p.signature,
+      p.version,
+      p.generation,
+      p.dureeSecondes,
+      p.nombre
+  };
+
+  for (uint32_t v : valeurs) {
+    for (int i = 0; i < 4; i++) {
+      h ^= (v >> (8 * i)) & 255;
+      h *= 16777619UL;
+    }
+  }
+
+  for (uint32_t n = 0; n < p.nombre && n < PLAYLIST_MAX; n++) {
+    uint32_t v = p.messages[n].checksum;
+
+    for (int i = 0; i < 4; i++) {
+      h ^= (v >> (8 * i)) & 255;
+      h *= 16777619UL;
+    }
+  }
+
+  return h;
+}
+
+bool playlistValide(const PlaylistConfig &p) {
+  if (p.signature != PLAYLIST_SIG ||
+      p.version != PLAYLIST_VERSION ||
+      p.nombre > PLAYLIST_MAX ||
+      p.dureeSecondes < 3 ||
+      p.dureeSecondes > 300 ||
+      p.checksum != checksumPlaylist(p)) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < p.nombre; i++) {
+    if (!pubValide(p.messages[i])) return false;
+  }
+
+  return true;
+}
+
+bool lirePlaylist(const char *cle, PlaylistConfig &p) {
+  return stockagePub.getBytesLength(cle) == sizeof p &&
+         stockagePub.getBytes(cle, &p, sizeof p) == sizeof p &&
+         playlistValide(p);
+}
+
+void chargerPlaylist() {
+  playlist = {};
+  playlist.signature = PLAYLIST_SIG;
+  playlist.version = PLAYLIST_VERSION;
+  playlist.dureeSecondes = 10;
+  playlist.checksum = checksumPlaylist(playlist);
+
+  if (!stockagePubPret) return;
+
+  PlaylistConfig a = {};
+  PlaylistConfig b = {};
+
+  bool va = lirePlaylist("list0", a);
+  bool vb = lirePlaylist("list1", b);
+
+  if (va && (!vb || (int32_t)(a.generation - b.generation) > 0)) {
+    playlist = a;
+    playlistSlot = 0;
+  } else if (vb) {
+    playlist = b;
+    playlistSlot = 1;
+  } else if (
+      stockagePub.getBytesLength("list0") ||
+      stockagePub.getBytesLength("list1")) {
+    playlistErreur = true;
+  }
+}
+
+bool sauverPlaylist(PlaylistConfig candidate) {
+  if (!stockagePubPret || playlistErreur) return false;
+
+  candidate.signature = PLAYLIST_SIG;
+  candidate.version = PLAYLIST_VERSION;
+  candidate.generation = playlist.generation + 1;
+  candidate.checksum = checksumPlaylist(candidate);
+
+  if (!playlistValide(candidate)) return false;
+
+  int cible = playlistSlot == 0 ? 1 : 0;
+  const char *cle = cible == 0 ? "list0" : "list1";
+
+  if (stockagePub.putBytes(cle, &candidate, sizeof candidate) !=
+      sizeof candidate) {
+    return false;
+  }
+
+  PlaylistConfig lu = {};
+
+  if (!lirePlaylist(cle, lu) ||
+      memcmp(&candidate, &lu, sizeof lu) != 0) {
+    return false;
+  }
+
+  playlist = lu;
+  playlistSlot = cible;
+  return true;
+}
+
+AdConfig pubCourantePlaylist() {
+  AdConfig c = {};
+
+  c.signature = SIGNATURE_PUB;
+  c.version = VERSION_PUB;
+
+  strlcpy(c.texte, textePub, sizeof c.texte);
+
+  c.couleur = couleurPub;
+  c.intervalle = intervallePub;
+  c.luminosite = luminositePub;
+  c.scroll = scrollPub ? 1 : 0;
+  c.icone = iconePub;
+  c.effet = effetPub;
+  c.checksum = checksumPub(c);
+
+  return c;
+}
+
+void chargerElementPlaylist(uint8_t index) {
+  const AdConfig &c = playlist.messages[index];
+
+  strlcpy(textePub, c.texte, sizeof textePub);
+
+  couleurPub = c.couleur;
+  intervallePub = c.intervalle;
+  luminositePub = c.luminosite;
+  scrollPub = c.scroll != 0;
+  iconePub = c.icone;
+  effetPub = c.effet;
+
+  phaseEffetPub = 0;
+  dernierEffetPub = millis();
+  positionPub = scrollPub ? 32 : 0;
+  pubSale = true;
+}
+
+void valeursPlaylist(JsonDocument &d) {
+  d["duree_s"] = playlist.dureeSecondes;
+  d["active"] = playlistActive;
+  d["index"] = playlistActive ? playlistIndex : -1;
+  d["disponible"] = stockagePubPret && !playlistErreur;
+
+  JsonArray a = d["messages"].to<JsonArray>();
+
+  for (uint32_t i = 0; i < playlist.nombre; i++) {
+    a.add(playlist.messages[i].texte);
+  }
+}
+
+void actualiserPlaylist(uint32_t now) {
+  uint32_t delta = now - playlistDernier;
+  playlistDernier = now;
+
+  if (!playlistActive ||
+      modeAffichage != MODE_ADVERTISING ||
+      etatPub != PUB_PLAY ||
+      playlist.nombre == 0) {
+    return;
+  }
+
+  playlistEcoule += delta;
+
+  if (playlistEcoule >= playlist.dureeSecondes * 1000UL) {
+    playlistEcoule = 0;
+    playlistIndex = (playlistIndex + 1) % playlist.nombre;
+    chargerElementPlaylist(playlistIndex);
+  }
 }
 
 void afficherPub() {
@@ -820,13 +1015,16 @@ void commande(const char *s) {
         "etat | cible N | marge N | facile R G B | "
         "difficile R G B | vitesse N"
     );
+
     Serial.println(
         "wifi MOT_DE_PASSE (sans espaces, 8..63 caracteres)"
     );
+
     Serial.println(
         "cible/marge en centiemes ; vitesse en ms "
         "(100..60000). Reglage seulement si PRET."
     );
+
     return;
   }
 
@@ -861,27 +1059,32 @@ void commande(const char *s) {
   if (sscanf(s, "cible %lu %c", &n, &fin) == 1 &&
       n <= 599999) {
     c.cible = n;
+
   } else if (
       sscanf(s, "marge %lu %c", &n, &fin) == 1 &&
       n <= 599999) {
     c.margeCs = n;
+
   } else if (
       sscanf(s, "vitesse %lu %c", &n, &fin) == 1 &&
       n >= 100 &&
       n <= 60000) {
     c.traversee = n;
+
   } else if (
       sscanf(s, "facile %lu %lu %lu %c", &r, &g, &b, &fin) == 3 &&
       r <= 255 &&
       g <= 255 &&
       b <= 255) {
     c.facile = (r << 16) | (g << 8) | b;
+
   } else if (
       sscanf(s, "difficile %lu %lu %lu %c", &r, &g, &b, &fin) == 3 &&
       r <= 255 &&
       g <= 255 &&
       b <= 255) {
     c.difficile = (r << 16) | (g << 8) | b;
+
   } else {
     Serial.println(
         "ERREUR : commande ou valeurs invalides. Tapez aide."
@@ -931,6 +1134,7 @@ void lireSerie() {
 
       longueurSerie = 0;
       ligneTropLongue = false;
+
     } else if (!ligneTropLongue) {
       if (longueurSerie < sizeof(ligneSerie) - 1) {
         ligneSerie[longueurSerie++] = c;
@@ -1009,7 +1213,8 @@ void traiterSocket(
 
         reponse["features"]["game"] = true;
         reponse["features"]["advertising"] = true;
-        reponse["features"]["playlist"] = false;
+        reponse["features"]["playlist"] =
+            stockagePubPret && !playlistErreur;
         reponse["features"]["scheduler"] = false;
 
         reponse["security"]["authentication"] = false;
@@ -1057,8 +1262,6 @@ void traiterSocket(
                   : MODE_ADVERTISING;
 
           if (demande != modeAffichage) {
-            // Le changement annule la partie et la mélodie.
-            // Les réglages restent conservés.
             arreterSon();
             melodieTerminee = true;
             appuisResetVictoire = 0;
@@ -1095,6 +1298,96 @@ void traiterSocket(
                                     : "resultat";
         }
 
+      } else if (strcmp(action, "get_playlist") == 0) {
+        reponse["type"] = "playlist";
+        valeursPlaylist(reponse);
+
+      } else if (strcmp(action, "playlist_change") == 0) {
+        const char *cmd = entree["action"] | "";
+
+        PlaylistConfig prochain = playlist;
+        bool stocker = false;
+        const char *erreur = nullptr;
+
+        if (modeAffichage != MODE_ADVERTISING) {
+          erreur = "not_advertising";
+
+        } else if (!stockagePubPret || playlistErreur) {
+          erreur = "playlist_storage";
+
+        } else if (strcmp(cmd, "add") == 0) {
+          if (playlistActive) {
+            erreur = "playlist_busy";
+          } else if (prochain.nombre >= PLAYLIST_MAX) {
+            erreur = "playlist_full";
+          } else {
+            prochain.messages[prochain.nombre++] =
+                pubCourantePlaylist();
+            stocker = true;
+          }
+
+        } else if (strcmp(cmd, "clear") == 0) {
+          if (playlistActive) {
+            erreur = "playlist_busy";
+          } else {
+            prochain.nombre = 0;
+            stocker = true;
+          }
+
+        } else if (strcmp(cmd, "duration") == 0) {
+          uint32_t duree = 0;
+
+          if (playlistActive) {
+            erreur = "playlist_busy";
+          } else if (!champEntier(
+                         entree.as<JsonObjectConst>(),
+                         "duree_s",
+                         3,
+                         300,
+                         duree
+                     )) {
+            erreur = "invalid_config";
+          } else {
+            prochain.dureeSecondes = duree;
+            stocker = true;
+          }
+
+        } else if (strcmp(cmd, "start") == 0) {
+          if (playlist.nombre == 0) {
+            erreur = "playlist_empty";
+          } else {
+            playlistIndex = 0;
+            playlistEcoule = 0;
+            playlistDernier = millis();
+            playlistActive = true;
+
+            chargerElementPlaylist(0);
+            etatPub = PUB_PLAY;
+          }
+
+        } else if (strcmp(cmd, "stop") == 0) {
+          playlistActive = false;
+          etatPub = PUB_STOP;
+
+          matrix.fillScreen(0);
+          matrix.show();
+
+        } else {
+          erreur = "invalid_action";
+        }
+
+        if (stocker && !sauverPlaylist(prochain)) {
+          erreur = "playlist_uncertain";
+        }
+
+        if (erreur) {
+          reponse["type"] = "error";
+          reponse["code"] = erreur;
+        } else {
+          reponse["type"] = "playlist";
+          valeursPlaylist(reponse);
+        }
+
       } else if (strcmp(action, "get_live_ad") == 0) {
         reponse["type"] = "live_ad";
         valeursPub(reponse);
@@ -1124,9 +1417,11 @@ void traiterSocket(
         if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
+
         } else if (etat != PRET) {
           reponse["type"] = "error";
           reponse["code"] = "game_busy";
+
         } else if (
             p.isNull() ||
             (p.size() != 5 && p.size() != 6 && p.size() != 7) ||
@@ -1141,7 +1436,10 @@ void traiterSocket(
             !champEntier(p, "luminosite", 1, 20, lum)) {
           reponse["type"] = "error";
           reponse["code"] = "invalid_config";
+
         } else {
+          playlistActive = false;
+
           strlcpy(textePub, text, sizeof textePub);
 
           couleurPub = rgb;
@@ -1163,15 +1461,19 @@ void traiterSocket(
         if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
+
         } else if (etat != PRET) {
           reponse["type"] = "error";
           reponse["code"] = "game_busy";
+
         } else if (!stockagePubPret) {
           reponse["type"] = "error";
           reponse["code"] = "ad_storage_unavailable";
+
         } else if (!enregistrerPub()) {
           reponse["type"] = "error";
           reponse["code"] = "ad_storage_uncertain";
+
         } else {
           reponse["type"] = "live_ad_saved";
           valeursPub(reponse);
@@ -1183,26 +1485,36 @@ void traiterSocket(
         if (modeAffichage != MODE_ADVERTISING) {
           reponse["type"] = "error";
           reponse["code"] = "not_advertising";
+
         } else if (etat != PRET) {
           reponse["type"] = "error";
           reponse["code"] = "game_busy";
+
         } else if (strcmp(cmd, "play") == 0) {
           etatPub = PUB_PLAY;
           pubSale = true;
+
           reponse["type"] = "live_ad_state";
           valeursPub(reponse);
+
         } else if (strcmp(cmd, "pause") == 0 &&
                    etatPub != PUB_STOP) {
           etatPub = PUB_PAUSE;
           pubSale = true;
+
           reponse["type"] = "live_ad_state";
           valeursPub(reponse);
+
         } else if (strcmp(cmd, "stop") == 0) {
+          playlistActive = false;
           etatPub = PUB_STOP;
+
           matrix.fillScreen(0);
           matrix.show();
+
           reponse["type"] = "live_ad_state";
           valeursPub(reponse);
+
         } else {
           reponse["type"] = "error";
           reponse["code"] = "invalid_action";
@@ -1221,6 +1533,7 @@ void traiterSocket(
         if (etat != PRET) {
           reponse["type"] = "error";
           reponse["code"] = "game_busy";
+
         } else if (
             params.isNull() ||
             params.size() != 5 ||
@@ -1243,6 +1556,7 @@ void traiterSocket(
             )) {
           reponse["type"] = "error";
           reponse["code"] = "invalid_config";
+
         } else {
           Config old = configCourante();
 
@@ -1296,7 +1610,12 @@ bool demarrerWifi(const String &pass) {
   uint64_t id = ESP.getEfuseMac();
 
   char suffixe[5];
-  snprintf(suffixe, sizeof suffixe, "%04X", (unsigned)(id & 0xFFFF));
+  snprintf(
+      suffixe,
+      sizeof suffixe,
+      "%04X",
+      (unsigned)(id & 0xFFFF)
+  );
 
   nomReseau = String("AMZ-IT-") + suffixe;
 
@@ -1419,6 +1738,7 @@ void setup() {
 
   if (stockagePubPret) {
     chargerPub();
+    chargerPlaylist();
   } else {
     Serial.println("ERREUR : stockage publicitaire indisponible.");
   }
@@ -1448,8 +1768,7 @@ void loop() {
     arreterSon();
   }
 
-  // Les entrées sont toujours lues pour conserver l'anti-rebond,
-  // mais leurs événements sont ignorés en mode Advertising.
+  // Les boutons sont ignorés en mode Advertising.
   bool go = jeu.appui(now);
   bool choix = mode.appui(now);
 
@@ -1485,8 +1804,8 @@ void loop() {
       if (modeJeu == DIFFICILE) {
         matrix.fillScreen(0);
         matrix.show();
+
       } else if (modeJeu == SMILEY) {
-        // Tirer une autre position parmi les dix possibles.
         int ancien = cadreX;
         int tirage = (int)(esp_random() % 9);
 
@@ -1501,6 +1820,7 @@ void loop() {
 
         Serial.print("Cadre, colonne gauche : ");
         Serial.println(cadreX);
+
       } else {
         afficherTemps(0);
       }
@@ -1533,6 +1853,7 @@ void loop() {
           son(now, 1200, 100);
           Serial.println("Manque");
         }
+
       } else {
         resultat = now - depart;
 
@@ -1574,6 +1895,7 @@ void loop() {
 
         Serial.println("Remise a zero");
       }
+
     } else {
       arreterSon();
       etat = PRET;
@@ -1589,7 +1911,8 @@ void loop() {
     uint32_t ecoule = now - depart;
 
     if (modeJeu == SMILEY) {
-      uint32_t duree = TRAVERSEE_MS == 0 ? 1000 : TRAVERSEE_MS;
+      uint32_t duree =
+          TRAVERSEE_MS == 0 ? 1000 : TRAVERSEE_MS;
 
       int nouvelleX =
           -5 + (int)((uint64_t(ecoule % duree) * 37ULL) / duree);
@@ -1598,12 +1921,14 @@ void loop() {
         smileyX = nouvelleX;
         afficherSmiley(smileyX, true);
       }
+
     } else if (ecoule >= MAX_MS) {
       resultat = MAX_MS;
       etat = RESULTAT;
 
       arreterSon();
       afficherTemps(resultat);
+
     } else {
       uint32_t seconde = ecoule / 1000;
 
@@ -1632,6 +1957,7 @@ void loop() {
     if (uint32_t(now - debutMelodie) >= DUREE_MELODIE_MS) {
       arreterSon();
       melodieTerminee = true;
+
     } else if (!sonActif &&
                uint32_t(now - sonDebut) >= sonDuree + 40) {
       if (prochaineNote >= nombreNotes) {
@@ -1648,6 +1974,7 @@ void loop() {
     }
   }
 
+  actualiserPlaylist(now);
   actualiserPub(now);
 
   if (etat == VICTOIRE &&

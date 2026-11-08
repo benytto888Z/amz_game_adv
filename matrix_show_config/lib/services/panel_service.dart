@@ -122,7 +122,9 @@ class PanelService {
       _failPending();
 
       if (!first.isCompleted) {
-        first.completeError(const PanelException('disconnected'));
+        first.completeError(
+          const PanelException('disconnected'),
+        );
       }
 
       onDisconnected();
@@ -137,7 +139,8 @@ class PanelService {
 
           final value = jsonDecode(message);
 
-          if (value is! Map<String, dynamic> || value['version'] != 1) {
+          if (value is! Map<String, dynamic> ||
+              value['version'] != 1) {
             return;
           }
 
@@ -181,7 +184,10 @@ class PanelService {
     void requestStatus() {
       if (socket.readyState == WebSocket.open) {
         socket.add(
-          jsonEncode({'type': 'get_status', 'id': 'status'}),
+          jsonEncode({
+            'type': 'get_status',
+            'id': 'status',
+          }),
         );
       }
     }
@@ -205,6 +211,7 @@ class PanelService {
       String type, {
         Map<String, dynamic>? config,
         String? action,
+        int? durationSeconds,
       }) async {
     final socket = _socket;
 
@@ -224,6 +231,7 @@ class PanelService {
           'id': id,
           if (config != null) 'config': config,
           if (action != null) 'action': action,
+          if (durationSeconds != null) 'duree_s': durationSeconds,
         }),
       );
 
@@ -243,6 +251,33 @@ class PanelService {
     } finally {
       _pending.remove(id);
     }
+  }
+
+  Future<Map<String, dynamic>> playlistGet() async {
+    final r = await _request('get_playlist');
+
+    if (r['type'] != 'playlist') {
+      throw const FormatException('invalid_response');
+    }
+
+    return r;
+  }
+
+  Future<Map<String, dynamic>> playlistChange(
+      String action, {
+        int? durationSeconds,
+      }) async {
+    final r = await _request(
+      'playlist_change',
+      action: action,
+      durationSeconds: durationSeconds,
+    );
+
+    if (r['type'] != 'playlist') {
+      throw const FormatException('invalid_response');
+    }
+
+    return r;
   }
 
   Future<PanelStatus> setDisplayMode(String mode) async {

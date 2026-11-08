@@ -7,6 +7,7 @@ import 'core/theme/amz_dark_theme.dart';
 import 'core/design_system/spacing.dart';
 import 'core/design_system/components/amz_section_card.dart';
 import 'core/responsive/breakpoints.dart';
+import 'features/playlists/playlist_page.dart';
 import 'services/panel_service.dart';
 import 'features/game_settings/game_settings_page.dart';
 import 'features/live_ad/live_ad_page.dart';
@@ -127,6 +128,7 @@ class Texts extends Translations {
       'live_send': 'Envoyer les réglages',
       'live_reload': 'Relire le panneau (efface les modifications)',
       'live_open': 'Contrôle en direct',
+      'playlist_open': 'Playlist',
 
       'studio': 'Studio LED',
       'studio_title': 'Studio publicitaire',
@@ -311,6 +313,7 @@ class Texts extends Translations {
       'live_send': 'Send settings',
       'live_reload': 'Reload panel (discard edits)',
       'live_open': 'Live control',
+      'playlist_open': 'Playlist',
 
       'studio': 'LED Studio',
       'studio_title': 'Advertising studio',
@@ -833,6 +836,22 @@ class _HomeState extends State<Home> {
               )
                   : null,
               child: Text('live_open'.tr),
+            ),
+            const SizedBox(height: 8),
+
+            OutlinedButton(
+              onPressed: c.connected.value && c.advertising.value == true
+                  ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PlaylistPage(
+                    service: c.service,
+                    connected: c.connected,
+                    displayMode: c.displayMode,
+                  ),
+                ),
+              )
+                  : null,
+              child: Text('playlist_open'.tr),
             ),
           ],
         ),
