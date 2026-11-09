@@ -36,6 +36,9 @@ class Texts extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'fr_FR': {
+      'dash_kicker': 'VUE D’ENSEMBLE',
+      'dash_intro': 'Suivez l’état confirmé de votre panneau et choisissez son mode d’affichage.',
+      'dash_game_mode': 'Jeu sélectionné',
       'panel_id_label': 'Identifiant du panneau',
       'panel_id_unknown': 'Non disponible',
       'display_title': 'Mode du panneau',
@@ -137,6 +140,11 @@ class Texts extends Translations {
       'schedule_open': 'Programmation',
       'schedule_active': 'Désactivez la programmation avant le contrôle direct.',
 
+      'studio_kicker': 'CRÉATION · LED STUDIO',
+      'studio_intro_ui': 'Créez vos messages, organisez votre playlist et planifiez leur diffusion.',
+      'studio_live_detail': 'Préparez un message et visualisez son aperçu local.',
+      'studio_playlist_detail': 'Organisez les messages enregistrés sur le panneau.',
+      'studio_schedule_detail': 'Définissez les dates et horaires de diffusion.',
       'studio': 'Studio LED',
       'studio_title': 'Studio publicitaire',
       'studio_placeholder':
@@ -184,7 +192,12 @@ class Texts extends Translations {
 
       'connect': 'Connexion',
       'dashboard': 'Tableau de bord',
+      'settings_kicker': 'CONFIGURATION',
+      'settings_intro': 'Personnalisez l’apparence et accédez aux réglages du jeu.',
       'settings': 'Réglages',
+      'connection_kicker': 'APPAREIL · CONNEXION LOCALE',
+      'connection_intro': 'Reliez votre téléphone au panneau AMZ-IT pour consulter son état et le piloter.',
+      'connection_steps': 'Comment se connecter',
       'connect_title': 'Connecter le panneau',
       'instructions':
       '1. Rejoignez le réseau Wi-Fi AMZ-IT-XXXX dans les réglages du téléphone.\n\n'
@@ -224,6 +237,9 @@ class Texts extends Translations {
     },
 
     'en_US': {
+      'dash_kicker': 'OVERVIEW',
+      'dash_intro': 'Follow your panel’s confirmed status and select its display mode.',
+      'dash_game_mode': 'Selected game',
       'panel_id_label': 'Panel identifier',
       'panel_id_unknown': 'Unavailable',
       'display_title': 'Panel mode',
@@ -326,6 +342,11 @@ class Texts extends Translations {
       'schedule_open': 'Schedule',
       'schedule_active': 'Disable the schedule before using live control.',
 
+      'studio_kicker': 'CREATE · LED STUDIO',
+      'studio_intro_ui': 'Create messages, organize your playlist and schedule playback.',
+      'studio_live_detail': 'Prepare a message and view its local preview.',
+      'studio_playlist_detail': 'Organize messages saved on the panel.',
+      'studio_schedule_detail': 'Set dates and times for playback.',
       'studio': 'LED Studio',
       'studio_title': 'Advertising studio',
       'studio_placeholder':
@@ -371,7 +392,12 @@ class Texts extends Translations {
 
       'connect': 'Connection',
       'dashboard': 'Dashboard',
+      'settings_kicker': 'CONFIGURATION',
+      'settings_intro': 'Personalize the appearance and access game settings.',
       'settings': 'Settings',
+      'connection_kicker': 'DEVICE · LOCAL CONNECTION',
+      'connection_intro': 'Connect your phone to the AMZ-IT panel to check its status and control it.',
+      'connection_steps': 'How to connect',
       'connect_title': 'Connect the panel',
       'instructions':
       '1. Join the AMZ-IT-XXXX Wi-Fi network in your phone settings.\n\n'
@@ -672,46 +698,100 @@ class _HomeState extends State<Home> {
     settings(),
   ];
 
-  Widget connection() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'connect_title'.tr,
-        style: Theme.of(context).textTheme.headlineSmall,
-      ),
-      const SizedBox(height: 12),
-      AmzSectionCard(child: Text('instructions'.tr)),
-      const SizedBox(height: 16),
-      TextFormField(
-        initialValue: AppController.panneauNom,
-        enabled: false,
-        decoration: InputDecoration(
-          labelText: 'address'.tr,
-          border: const OutlineInputBorder(),
-        ),
-      ),
-      const SizedBox(height: 12),
-      Text('security'.tr),
-      const SizedBox(height: 16),
-      FilledButton.icon(
-        onPressed: c.busy.value ? null : c.connect,
-        icon: const Icon(Icons.link),
-        label: Text(
-          (c.busy.value ? 'checking' : 'check').tr,
-        ),
-      ),
-      if (c.error.value.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Text(
-            c.error.value.tr,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
+  Widget connection() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final online = c.connected.value;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('connection_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
+          color: colors.primary, letterSpacing: 1.4,
+        )),
+        const SizedBox(height: 8),
+        Text('connect_title'.tr, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        Text('connection_intro'.tr, style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+        )),
+        const SizedBox(height: 24),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Icon(Icons.wifi_tethering, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('connection_steps'.tr,
+                      style: theme.textTheme.titleLarge)),
+                ]),
+                const SizedBox(height: 16),
+                Text('instructions'.tr, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 20),
+                TextFormField(
+                  initialValue: AppController.panneauNom,
+                  enabled: false,
+                  decoration: InputDecoration(
+                    labelText: 'address'.tr,
+                    prefixIcon: const Icon(Icons.dns_outlined),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: c.busy.value ? null : c.connect,
+                  icon: const Icon(Icons.link),
+                  label: Text((c.busy.value ? 'checking' : 'check').tr),
+                ),
+                if (c.error.value.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(c.error.value.tr, style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.error,
+                  )),
+                ],
+              ],
             ),
           ),
         ),
-    ],
-  );
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(online ? Icons.check_circle_outline : Icons.link_off,
+                      color: online ? colors.primary : colors.onSurfaceVariant),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text((online ? 'connected' : 'disconnected').tr,
+                      style: theme.textTheme.titleMedium)),
+                ]),
+                const SizedBox(height: 8),
+                Text((online ? 'last' : 'unconfirmed').tr,
+                    style: theme.textTheme.bodySmall),
+                if (online) ...[
+                  const SizedBox(height: 12),
+                  Text('panel_id_label'.tr, style: theme.textTheme.labelMedium),
+                  const SizedBox(height: 4),
+                  SelectableText(c.panelId.value.isEmpty
+                      ? 'panel_id_unknown'.tr : c.panelId.value,
+                      style: theme.textTheme.bodyMedium),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('security'.tr, style: theme.textTheme.bodySmall),
+      ],
+    );
+  }
 
   Future<void> selectDisplayMode(String target) async {
     if (target == 'advertising' &&
@@ -740,242 +820,333 @@ class _HomeState extends State<Home> {
     await c.switchDisplay(target);
   }
 
-  Widget dashboard() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'dashboard'.tr,
-        style: Theme.of(context).textTheme.headlineSmall,
-      ),
-      const SizedBox(height: 16),
-      Card(
-        child: Column(
-          children: [
-            ListTile(
-              leading: Icon(
-                c.connected.value
-                    ? Icons.check_circle_outline
-                    : Icons.link_off,
-              ),
-              title: Text(
-                (c.connected.value ? 'connected' : 'disconnected').tr,
-              ),
-              subtitle: Text(
-                (c.connected.value ? 'last' : 'unconfirmed').tr,
-              ),
-            ),
-            if (c.connected.value) ...[
-              ListTile(
-                title: Text('panel_id_label'.tr),
-                subtitle: Text(c.panelId.value.isEmpty
-                    ? 'panel_id_unknown'.tr
-                    : c.panelId.value),
-              ),
-              ListTile(
-                title: Text('mode'.tr),
-                trailing: Text(c.mode.value.tr),
-              ),
-              ListTile(
-                title: Text('state'.tr),
-                trailing: Text(c.state.value.tr),
-              ),
-            ],
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'display_title'.tr,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(
-                '${'display_current'.tr} : '
-                    '${(c.connected.value && c.displayMode.value != 'unknown' ? 'display_${c.displayMode.value}' : 'display_unknown').tr}',
-              ),
-              Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: c.connected.value && !c.modeBusy.value
-                        ? () => selectDisplayMode('game')
-                        : null,
-                    child: Text('display_game'.tr),
-                  ),
-                  OutlinedButton(
-                    onPressed: c.connected.value && !c.modeBusy.value
-                        ? () => selectDisplayMode('advertising')
-                        : null,
-                    child: Text('display_advertising'.tr),
-                  ),
-                ],
-              ),
-              if (c.modeError.value.isNotEmpty)
-                Text(
-                  c.modeError.value.tr,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-      const SizedBox(height: 12),
-      OutlinedButton(
-        onPressed: c.busy.value ? null : c.connect,
-        child: Text('refresh'.tr),
-      ),
-    ],
-  );
+  Widget dashboard() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final online = c.connected.value;
+    final confirmedMode = online && c.displayMode.value != 'unknown'
+        ? 'display_${c.displayMode.value}'.tr
+        : 'display_unknown'.tr;
 
-  Widget studio() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'studio_title'.tr,
-        style: Theme.of(context).textTheme.headlineSmall,
-      ),
-      const SizedBox(height: 16),
-      AmzSectionCard(
+    Widget infoCard({required IconData icon, required String label,
+      required String value, String? detail}) => Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('studio_placeholder'.tr),
-            const SizedBox(height: 12),
-            Text(
-              (!c.connected.value || c.advertising.value == null
-                  ? 'cap_unknown'
-                  : c.advertising.value!
-                  ? 'cap_on'
-                  : 'cap_off')
-                  .tr,
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed:
-              c.connected.value && c.advertising.value == true
-                  ? () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => LiveAdPage(
-                    service: c.service,
-                    connected: c.connected,
-                    gameState: c.state,
-                    displayMode: c.displayMode,
-                  ),
-                ),
-              )
-                  : null,
-              child: Text('live_open'.tr),
-            ),
-            const SizedBox(height: 8),
-
-            OutlinedButton(
-              onPressed: c.connected.value && c.advertising.value == true
-                  ? () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => PlaylistPage(
-                    service: c.service,
-                    connected: c.connected,
-                    displayMode: c.displayMode,
-                  ),
-                ),
-              )
-                  : null,
-              child: Text('playlist_open'.tr),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: c.connected.value && c.advertising.value == true
-                  ? () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => SchedulePage(service: c.service, connected: c.connected)))
-                  : null,
-              child: Text('schedule_open'.tr),
-            ),
+            Icon(icon, color: colors.primary, size: 22),
+            const SizedBox(height: 14),
+            Text(label, style: theme.textTheme.labelMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            )),
+            const SizedBox(height: 6),
+            Text(value, style: theme.textTheme.titleLarge),
+            if (detail != null) ...[
+              const SizedBox(height: 4),
+              Text(detail, style: theme.textTheme.bodySmall),
+            ],
           ],
         ),
       ),
-    ],
-  );
+    );
 
-  Widget settings() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'settings'.tr,
-        style: Theme.of(context).textTheme.headlineSmall,
-      ),
-      const SizedBox(height: 12),
-      Card(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('dash_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
+          color: colors.primary, letterSpacing: 1.4,
+        )),
+        const SizedBox(height: 8),
+        Text('dashboard'.tr, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        Text('dash_intro'.tr, style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+        )),
+        const SizedBox(height: 24),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 680 ? 3 :
+          constraints.maxWidth >= 420 ? 2 : 1;
+          final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
+          return Wrap(spacing: 12, runSpacing: 12, children: [
+            SizedBox(width: width, child: infoCard(
+              icon: online ? Icons.wifi : Icons.wifi_off,
+              label: 'state'.tr,
+              value: (online ? 'connected' : 'disconnected').tr,
+              detail: (online ? 'last' : 'unconfirmed').tr,
+            )),
+            SizedBox(width: width, child: infoCard(
+              icon: Icons.memory_outlined,
+              label: 'panel_id_label'.tr,
+              value: online && c.panelId.value.isNotEmpty
+                  ? c.panelId.value : 'panel_id_unknown'.tr,
+            )),
+            SizedBox(width: width, child: infoCard(
+              icon: Icons.layers_outlined,
+              label: 'display_current'.tr,
+              value: confirmedMode,
+            )),
+          ]);
+        }),
+        const SizedBox(height: 16),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('display_title'.tr, style: theme.textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text('${'display_current'.tr} : $confirmedMode',
+                    style: theme.textTheme.bodyMedium),
+                if (online) ...[
+                  const SizedBox(height: 8),
+                  Text('${'dash_game_mode'.tr} : ${c.mode.value.tr} · '
+                      '${'state'.tr} : ${c.state.value.tr}',
+                      style: theme.textTheme.bodySmall),
+                ],
+                const SizedBox(height: 16),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  OutlinedButton.icon(
+                    onPressed: online && !c.modeBusy.value
+                        ? () => selectDisplayMode('game') : null,
+                    icon: const Icon(Icons.sports_esports_outlined),
+                    label: Text('display_game'.tr),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: online && !c.modeBusy.value
+                        ? () => selectDisplayMode('advertising') : null,
+                    icon: const Icon(Icons.campaign_outlined),
+                    label: Text('display_advertising'.tr),
+                  ),
+                ]),
+                if (c.modeError.value.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(c.modeError.value.tr,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: colors.error)),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: c.busy.value ? null : c.connect,
+            icon: const Icon(Icons.refresh),
+            label: Text('refresh'.tr),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget studio() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final available = c.connected.value && c.advertising.value == true;
+    final capability = !c.connected.value || c.advertising.value == null
+        ? 'cap_unknown'
+        : c.advertising.value! ? 'cap_on' : 'cap_off';
+
+    Widget featureCard({
+      required IconData icon,
+      required String title,
+      required String description,
+      required VoidCallback open,
+    }) => Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              title: Text('lang'.tr),
-              trailing: DropdownButton<String>(
-                value: Get.locale?.languageCode ?? 'fr',
-                onChanged: (v) {
-                  if (v != null) c.selectLanguage(v);
-                },
-                items: const [
-                  DropdownMenuItem(
-                    value: 'fr',
-                    child: Text('Français'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'en',
-                    child: Text('English'),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              title: Text('theme'.tr),
-              trailing: DropdownButton<ThemeMode>(
-                value: c.selectedTheme.value,
-                onChanged: (v) {
-                  if (v != null) c.selectTheme(v);
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: ThemeMode.system,
-                    child: Text('system'.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeMode.light,
-                    child: Text('light'.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeMode.dark,
-                    child: Text('dark'.tr),
-                  ),
-                ],
-              ),
+            Icon(icon, color: colors.primary, size: 26),
+            const SizedBox(height: 16),
+            Text(title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(description, style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            )),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: available ? open : null,
+              icon: const Icon(Icons.arrow_forward),
+              label: Text(title),
             ),
           ],
         ),
       ),
-      const SizedBox(height: 12),
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.sports_esports_outlined),
-          title: Text('game_settings'.tr),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => GameSettingsPage(
-                service: c.service,
-                connected: c.connected,
-                gameState: c.state,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('studio_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
+          color: colors.primary, letterSpacing: 1.4,
+        )),
+        const SizedBox(height: 8),
+        Text('studio_title'.tr, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        Text('studio_intro_ui'.tr, style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+        )),
+        const SizedBox(height: 24),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Icon(available ? Icons.check_circle_outline : Icons.info_outline,
+                  color: available ? colors.primary : colors.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(child: Text(capability.tr, style: theme.textTheme.bodyMedium)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 680 ? 3 :
+          constraints.maxWidth >= 420 ? 2 : 1;
+          final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
+          return Wrap(spacing: 12, runSpacing: 12, children: [
+            SizedBox(width: width, child: featureCard(
+              icon: Icons.edit_note,
+              title: 'live_open'.tr,
+              description: 'studio_live_detail'.tr,
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => LiveAdPage(
+                  service: c.service,
+                  connected: c.connected,
+                  gameState: c.state,
+                  displayMode: c.displayMode,
+                ),
+              )),
+            )),
+            SizedBox(width: width, child: featureCard(
+              icon: Icons.view_list_outlined,
+              title: 'playlist_open'.tr,
+              description: 'studio_playlist_detail'.tr,
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => PlaylistPage(
+                  service: c.service,
+                  connected: c.connected,
+                  displayMode: c.displayMode,
+                ),
+              )),
+            )),
+            SizedBox(width: width, child: featureCard(
+              icon: Icons.calendar_month_outlined,
+              title: 'schedule_open'.tr,
+              description: 'studio_schedule_detail'.tr,
+              open: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => SchedulePage(service: c.service, connected: c.connected),
+              )),
+            )),
+          ]);
+        }),
+      ],
+    );
+  }
+
+  Widget settings() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('settings_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
+          color: colors.primary, letterSpacing: 1.4,
+        )),
+        const SizedBox(height: 8),
+        Text('settings'.tr, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        Text('settings_intro'.tr, style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+        )),
+        const SizedBox(height: 24),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Icon(Icons.palette_outlined, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('theme'.tr, style: theme.textTheme.titleLarge)),
+                ]),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<ThemeMode>(
+                  initialValue: c.selectedTheme.value,
+                  decoration: InputDecoration(labelText: 'theme'.tr),
+                  onChanged: (v) {
+                    if (v != null) c.selectTheme(v);
+                  },
+                  items: [
+                    DropdownMenuItem(value: ThemeMode.system, child: Text('system'.tr)),
+                    DropdownMenuItem(value: ThemeMode.light, child: Text('light'.tr)),
+                    DropdownMenuItem(value: ThemeMode.dark, child: Text('dark'.tr)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Icon(Icons.language, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('lang'.tr, style: theme.textTheme.titleLarge)),
+                ]),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: Get.locale?.languageCode ?? 'fr',
+                  decoration: InputDecoration(labelText: 'lang'.tr),
+                  onChanged: (v) {
+                    if (v != null) c.selectLanguage(v);
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 'fr', child: Text('Français')),
+                    DropdownMenuItem(value: 'en', child: Text('English')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            leading: Icon(Icons.sports_esports_outlined, color: colors.primary),
+            title: Text('game_settings'.tr, style: theme.textTheme.titleMedium),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => GameSettingsPage(
+                  service: c.service,
+                  connected: c.connected,
+                  gameState: c.state,
+                ),
               ),
             ),
           ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
