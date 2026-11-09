@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/amz_light_theme.dart';
 import 'core/theme/amz_dark_theme.dart';
 import 'core/theme/amz_liquid_theme.dart';
+import 'amz_pixel_splash.dart';
 import 'core/design_system/spacing.dart';
 import 'core/design_system/components/amz_section_card.dart';
 import 'core/responsive/breakpoints.dart';
@@ -604,9 +605,36 @@ class AmzApp extends StatelessWidget {
       theme: selected == ThemeMode.system ? amzLiquidTheme : amzLightTheme,
       darkTheme: amzDarkTheme,
       themeMode: selected == ThemeMode.dark ? ThemeMode.dark : ThemeMode.light,
-      home: Home(initialTheme: initialTheme),
+      home: _StartupGate(initialTheme: initialTheme),
     ),
   );
+}
+
+class _StartupGate extends StatefulWidget {
+  const _StartupGate({required this.initialTheme});
+  final ThemeMode initialTheme;
+
+  @override
+  State<_StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<_StartupGate> {
+  bool _finished = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_finished) return Home(initialTheme: widget.initialTheme);
+    final english = Get.locale?.languageCode == 'en';
+    return AmzPixelSplashScreen(
+      tagline: english
+          ? 'THE FUTURE OF CONNECTED DISPLAYS'
+          : 'LE FUTUR DE L’AFFICHAGE CONNECTÉ',
+      loadingLabel: english ? 'STARTING' : 'INITIALISATION',
+      onFinished: () {
+        if (mounted) setState(() => _finished = true);
+      },
+    );
+  }
 }
 
 class Home extends StatefulWidget {
