@@ -7,11 +7,14 @@ class PanelStatus {
     required this.mode,
     required this.state,
     required this.displayMode,
+    this.panelId,
   });
 
   final String mode;
   final String state;
   final String displayMode;
+  // Identifiant public, absent sur les anciens firmwares.
+  final String? panelId;
 }
 
 class PanelConfig {
@@ -153,6 +156,10 @@ class PanelService {
               PanelStatus(
                 mode: value['mode'] as String,
                 state: value['etat'] as String,
+                panelId: value['panel_id'] is String &&
+                    RegExp(r'^AMZ-[0-9A-F]{12}$').hasMatch(value['panel_id'] as String)
+                    ? value['panel_id'] as String
+                    : null,
                 displayMode: dm == 'game' || dm == 'advertising'
                     ? dm as String
                     : 'unknown',

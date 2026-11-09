@@ -36,6 +36,8 @@ class Texts extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'fr_FR': {
+      'panel_id_label': 'Identifiant du panneau',
+      'panel_id_unknown': 'Non disponible',
       'display_title': 'Mode du panneau',
       'display_game': 'Game',
       'display_advertising': 'Advertising',
@@ -222,6 +224,8 @@ class Texts extends Translations {
     },
 
     'en_US': {
+      'panel_id_label': 'Panel identifier',
+      'panel_id_unknown': 'Unavailable',
       'display_title': 'Panel mode',
       'display_game': 'Game',
       'display_advertising': 'Advertising',
@@ -427,6 +431,7 @@ class AppController extends GetxController {
   final mode = ''.obs;
   final state = ''.obs;
   final displayMode = 'unknown'.obs;
+  final panelId = ''.obs;
   final modeBusy = false.obs;
   final modeError = ''.obs;
   final error = ''.obs;
@@ -441,6 +446,7 @@ class AppController extends GetxController {
     error.value = '';
     advertising.value = null;
     displayMode.value = 'unknown';
+    panelId.value = '';
 
     try {
       await service.connect(
@@ -449,12 +455,14 @@ class AppController extends GetxController {
           mode.value = s.mode;
           state.value = s.state;
           displayMode.value = s.displayMode;
+          panelId.value = s.panelId ?? '';
           connected.value = true;
         },
         onDisconnected: () {
           connected.value = false;
           advertising.value = null;
           displayMode.value = 'unknown';
+          panelId.value = '';
           error.value = 'connection_error';
         },
       );
@@ -626,34 +634,34 @@ class _HomeState extends State<Home> {
     );
 
     return Scaffold(
-        appBar: AppBar(title: const Text('AMZ-IT • GAME')),
-        body: wide
-            ? Row(
-          children: [
-            NavigationRail(
-              selectedIndex: c.selected.value,
-              onDestinationSelected: (v) => c.selected.value = v,
-              labelType: NavigationRailLabelType.all,
-              destinations: destinations
-                  .map(
-                    (d) => NavigationRailDestination(
-                  icon: d.icon,
-                  label: Text(d.label),
-                ),
-              )
-                  .toList(),
-            ),
-            Expanded(child: content),
-          ],
-        )
-            : content,
-        bottomNavigationBar: wide
-            ? null
-            : NavigationBar(
-          selectedIndex: c.selected.value,
-          onDestinationSelected: (v) => c.selected.value = v,
-          destinations: destinations,
-        ),
+      appBar: AppBar(title: const Text('AMZ-IT • GAME')),
+      body: wide
+          ? Row(
+        children: [
+          NavigationRail(
+            selectedIndex: c.selected.value,
+            onDestinationSelected: (v) => c.selected.value = v,
+            labelType: NavigationRailLabelType.all,
+            destinations: destinations
+                .map(
+                  (d) => NavigationRailDestination(
+                icon: d.icon,
+                label: Text(d.label),
+              ),
+            )
+                .toList(),
+          ),
+          Expanded(child: content),
+        ],
+      )
+          : content,
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+        selectedIndex: c.selected.value,
+        onDestinationSelected: (v) => c.selected.value = v,
+        destinations: destinations,
+      ),
     );
   });
 
@@ -757,6 +765,12 @@ class _HomeState extends State<Home> {
               ),
             ),
             if (c.connected.value) ...[
+              ListTile(
+                title: Text('panel_id_label'.tr),
+                subtitle: Text(c.panelId.value.isEmpty
+                    ? 'panel_id_unknown'.tr
+                    : c.panelId.value),
+              ),
               ListTile(
                 title: Text('mode'.tr),
                 trailing: Text(c.mode.value.tr),
