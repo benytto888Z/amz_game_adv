@@ -660,7 +660,28 @@ class _HomeState extends State<Home> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AMZ-IT • GAME')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Text('AMZ', style: Theme.of(context).textTheme.titleLarge),
+            Text('-IT', style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            )),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'ADVERTISING MATRIX',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: wide
           ? Row(
         children: [
@@ -668,6 +689,7 @@ class _HomeState extends State<Home> {
             selectedIndex: c.selected.value,
             onDestinationSelected: (v) => c.selected.value = v,
             labelType: NavigationRailLabelType.all,
+            useIndicator: true,
             destinations: destinations
                 .map(
                   (d) => NavigationRailDestination(

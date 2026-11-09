@@ -240,127 +240,210 @@ class _SchedulePageState extends State<SchedulePage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Obx(() {
-              final online = widget.connected.value,
-                  can = online && loaded && storageAvailable && !busy;
+              final online = widget.connected.value;
+              final can = online && loaded && storageAvailable && !busy;
               final names = t('L,M,M,J,V,S,D', 'M,T,W,T,F,S,S').split(',');
+              final theme = Theme.of(context);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    t('Programmation', 'Schedule'),
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     t(
                       'Une période de dates et un créneau par jour. La fin est exclue. Les créneaux ne traversent pas minuit.',
                       'One date range and one interval per day. The end is exclusive. Intervals cannot cross midnight.',
                     ),
-                  ),
-                  Text(
-                    t(
-                      'La programmation fonctionne seulement en mode Advertising. Sans heure fiable ou hors plage, le message sauvegardé sert de secours.',
-                      'The schedule only runs in Advertising mode. If time is untrusted or outside the window, the saved message is the fallback.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Text(
-                    t(
-                      'L’heure doit être resynchronisée après coupure, changement de fuseau ou expiration.',
-                      'Time must be synchronized after power loss, timezone changes or expiration.',
+                  const SizedBox(height: 16),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  t('Heure et secours', 'Clock and fallback'),
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            t(
+                              'La programmation fonctionne seulement en mode Advertising. Sans heure fiable ou hors plage, le message sauvegardé sert de secours.',
+                              'The schedule only runs in Advertising mode. If time is untrusted or outside the window, the saved message is the fallback.',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            t(
+                              'L’heure doit être resynchronisée après coupure, changement de fuseau ou expiration.',
+                              'Time must be synchronized after power loss, timezone changes or expiration.',
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            clockValid
+                                ? t(
+                                    'Dernière heure confirmée : valide au dernier relevé.',
+                                    'Last confirmed clock: valid at last reading.',
+                                  )
+                                : t(
+                                    'Heure non confirmée ou expirée.',
+                                    'Clock unconfirmed or expired.',
+                                  ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            backupAvailable
+                                ? t(
+                                    'Message de secours sauvegardé.',
+                                    'Fallback message saved.',
+                                  )
+                                : t(
+                                    'Aucun message de secours confirmé.',
+                                    'No confirmed fallback message.',
+                                  ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: online && !busy ? sync : null,
+                            icon: const Icon(Icons.sync),
+                            label: Text(
+                              t(
+                                'Synchroniser l’heure du téléphone',
+                                'Synchronize phone time',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 16),
                   if (busy) const LinearProgressIndicator(),
-                  Text(
-                    clockValid
-                        ? t(
-                            'Dernière heure confirmée : valide au dernier relevé.',
-                            'Last confirmed clock: valid at last reading.',
-                          )
-                        : t(
-                            'Heure non confirmée ou expirée.',
-                            'Clock unconfirmed or expired.',
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_month_outlined,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  t('Dates et horaires', 'Dates and times'),
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                              ),
+                            ],
                           ),
-                  ),
-                  Text(
-                    backupAvailable
-                        ? t(
-                            'Message de secours sauvegardé.',
-                            'Fallback message saved.',
-                          )
-                        : t(
-                            'Aucun message de secours confirmé.',
-                            'No confirmed fallback message.',
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: first,
+                            enabled: can,
+                            decoration: InputDecoration(
+                              labelText: t(
+                                'Date de début AAAA-MM-JJ',
+                                'Start date YYYY-MM-DD',
+                              ),
+                            ),
                           ),
-                  ),
-                  OutlinedButton(
-                    onPressed: online && !busy ? sync : null,
-                    child: Text(
-                      t(
-                        'Synchroniser l’heure du téléphone',
-                        'Synchronize phone time',
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: last,
+                            enabled: can,
+                            decoration: InputDecoration(
+                              labelText: t(
+                                'Date de fin AAAA-MM-JJ',
+                                'End date YYYY-MM-DD',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: start,
+                            enabled: can,
+                            decoration: InputDecoration(
+                              labelText: t('Début HH:MM', 'Start HH:MM'),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: end,
+                            enabled: can,
+                            decoration: InputDecoration(
+                              labelText: t(
+                                'Fin HH:MM, 24:00 accepté',
+                                'End HH:MM, 24:00 accepted',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 4,
+                            children: List.generate(
+                              7,
+                              (i) => FilterChip(
+                                label: Text(names[i]),
+                                selected: (days & (1 << i)) != 0,
+                                onSelected: can
+                                    ? (v) => setState(
+                                        () => days = v
+                                            ? days | (1 << i)
+                                            : days & ~(1 << i),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          SwitchListTile(
+                            value: enabled,
+                            onChanged: can
+                                ? (v) => setState(() => enabled = v)
+                                : null,
+                            title: Text(
+                              t('Programmation activée', 'Schedule enabled'),
+                            ),
+                          ),
+                          FilledButton(
+                            onPressed: can ? save : null,
+                            child: Text(
+                              t(
+                                'Enregistrer la programmation',
+                                'Save schedule',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  TextField(
-                    controller: first,
-                    enabled: can,
-                    decoration: InputDecoration(
-                      labelText: t(
-                        'Date de début AAAA-MM-JJ',
-                        'Start date YYYY-MM-DD',
-                      ),
-                    ),
-                  ),
-                  TextField(
-                    controller: last,
-                    enabled: can,
-                    decoration: InputDecoration(
-                      labelText: t(
-                        'Date de fin AAAA-MM-JJ',
-                        'End date YYYY-MM-DD',
-                      ),
-                    ),
-                  ),
-                  TextField(
-                    controller: start,
-                    enabled: can,
-                    decoration: InputDecoration(
-                      labelText: t('Début HH:MM', 'Start HH:MM'),
-                    ),
-                  ),
-                  TextField(
-                    controller: end,
-                    enabled: can,
-                    decoration: InputDecoration(
-                      labelText: t(
-                        'Fin HH:MM, 24:00 accepté',
-                        'End HH:MM, 24:00 accepted',
-                      ),
-                    ),
-                  ),
-                  Wrap(
-                    spacing: 4,
-                    children: List.generate(
-                      7,
-                      (i) => FilterChip(
-                        label: Text(names[i]),
-                        selected: (days & (1 << i)) != 0,
-                        onSelected: can
-                            ? (v) => setState(
-                                () => days = v
-                                    ? days | (1 << i)
-                                    : days & ~(1 << i),
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-                  SwitchListTile(
-                    value: enabled,
-                    onChanged: can ? (v) => setState(() => enabled = v) : null,
-                    title: Text(t('Programmation activée', 'Schedule enabled')),
-                  ),
-                  FilledButton(
-                    onPressed: can ? save : null,
-                    child: Text(
-                      t('Enregistrer la programmation', 'Save schedule'),
-                    ),
-                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: online && !busy ? refresh : null,
                     child: Text(t('Relire le panneau', 'Reload panel')),
@@ -370,8 +453,8 @@ class _SchedulePageState extends State<SchedulePage> {
                       message!,
                       style: TextStyle(
                         color: ok
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.error,
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.error,
                       ),
                     ),
                 ],

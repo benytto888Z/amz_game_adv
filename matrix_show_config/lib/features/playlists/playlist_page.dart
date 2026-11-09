@@ -286,6 +286,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
+                    t('Playlist publicitaire', 'Advertising playlist'),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     t(
                       'Jusqu’à 5 messages. Préparez et envoyez chaque '
                           'message dans Contrôle en direct avant de '
@@ -298,14 +303,13 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   const SizedBox(height: 8),
                   Text(
                     t(
-                      'La playlist est conservée après coupure, mais '
-                          'doit être démarrée depuis l’application en '
-                          'mode Advertising. Après redémarrage, '
-                          'le panneau reste en Game.',
-                      'The playlist is retained after power loss, '
-                          'but must be started from the app in '
-                          'Advertising mode. After restart, '
-                          'the panel remains in Game.',
+                      'La playlist est conservée après coupure. Après '
+                          'redémarrage, le panneau reste en Game. En mode '
+                          'Advertising, elle peut être lancée manuellement '
+                          'ou par une programmation activée.',
+                      'The playlist is retained after power loss. After '
+                          'restart, the panel remains in Game. In Advertising '
+                          'mode it can be started manually or by an enabled schedule.',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -324,28 +328,53 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
                   if (busy) const LinearProgressIndicator(),
 
-                  Text(
-                    '${t('Dernier état lu :', 'Last read state:')} '
-                        '${active ? t('en lecture', 'playing') : t('arrêtée', 'stopped')}',
-                  ),
-
-                  if (loaded && !available)
-                    Text(
-                      t(
-                        'Stockage indisponible ou données invalides.',
-                        'Storage unavailable or invalid data.',
+                  const SizedBox(height: 12),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(children: [
+                            Icon(Icons.queue_music,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(
+                              t('Messages de la playlist', 'Playlist messages'),
+                              style: Theme.of(context).textTheme.titleMedium,
+                            )),
+                            Text(loaded ? '${messages.length} / 5' : '— / 5',
+                                style: Theme.of(context).textTheme.labelMedium),
+                          ]),
+                          const SizedBox(height: 8),
+                          Text(
+                            loaded
+                                ? '${t('Dernier état lu :', 'Last read state:')} '
+                                '${active ? t('en lecture', 'playing') : t('arrêtée', 'stopped')}'
+                                : t('État non confirmé.', 'State not confirmed.'),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          if (loaded && !available)
+                            Text(t('Stockage indisponible ou données invalides.',
+                                'Storage unavailable or invalid data.')),
+                          if (loaded && messages.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(t('Aucun message.', 'No messages.')),
+                            ),
+                          if (loaded)
+                            for (int i = 0; i < messages.length; i++)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(child: Text('${i + 1}')),
+                                title: Text(messages[i]),
+                              ),
+                        ],
                       ),
                     ),
-
-                  for (int i = 0; i < messages.length; i++)
-                    ListTile(
-                      leading: Text('${i + 1}'),
-                      title: Text(messages[i]),
-                    ),
-
-                  if (messages.isEmpty)
-                    Text(t('Aucun message.', 'No messages.')),
-
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: duration,
                     enabled: can && !active,

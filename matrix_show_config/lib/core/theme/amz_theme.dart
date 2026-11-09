@@ -12,31 +12,69 @@ abstract final class AmzTheme {
     final primary = dark ? AmzColors.darkPrimary : AmzColors.lightPrimary;
     final accent = dark ? AmzColors.darkAccent : AmzColors.lightAccent;
     final text = dark ? AmzColors.darkText : AmzColors.lightText;
-    final secondaryText = dark ? AmzColors.darkSecondaryText : AmzColors.lightSecondaryText;
+    final secondaryText = dark
+        ? AmzColors.darkSecondaryText
+        : AmzColors.lightSecondaryText;
     final border = dark ? AmzColors.darkBorder : AmzColors.lightBorder;
     final error = dark ? AmzColors.darkError : AmzColors.lightError;
-    final base = ColorScheme.fromSeed(seedColor: primary, brightness: brightness);
+    final base = ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: brightness,
+    );
     final scheme = base.copyWith(
-      primary: primary, onPrimary: dark ? AmzColors.darkBackground : AmzColors.lightSurface,
-      secondary: accent, surface: surface, onSurface: text,
-      onSurfaceVariant: secondaryText, outline: border, outlineVariant: border,
-      surfaceContainerLow: surface, surfaceContainer: elevated,
-      surfaceContainerHighest: dark ? AmzColors.darkElevated : AmzColors.lightBackgroundSecondary,
+      primary: primary,
+      onPrimary: dark ? AmzColors.darkBackground : AmzColors.lightSurface,
+      secondary: accent,
+      surface: surface,
+      onSurface: text,
+      onSurfaceVariant: secondaryText,
+      outline: border,
+      outlineVariant: border,
+      surfaceContainerLow: surface,
+      surfaceContainer: elevated,
+      surfaceContainerHighest: dark
+          ? AmzColors.darkElevated
+          : AmzColors.lightBackgroundSecondary,
       error: error,
     );
     final initial = ThemeData(useMaterial3: true, colorScheme: scheme);
     return initial.copyWith(
       scaffoldBackgroundColor: bg,
       textTheme: AmzTypography.apply(initial.textTheme, text, secondaryText),
-      appBarTheme: AppBarTheme(backgroundColor: bg, foregroundColor: text, elevation: 0),
-      cardTheme: CardThemeData(color: surface, elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AmzRadius.large), side: BorderSide(color: border))),
+      appBarTheme: AppBarTheme(
+        backgroundColor: bg,
+        foregroundColor: text,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AmzRadius.large),
+          side: BorderSide(color: border),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
-          filled: true, fillColor: surface,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: border)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: border))),
-      navigationBarTheme: NavigationBarThemeData(backgroundColor: surface, indicatorColor: scheme.secondaryContainer),
-      navigationRailTheme: NavigationRailThemeData(backgroundColor: surface, indicatorColor: scheme.secondaryContainer),
+        filled: true,
+        fillColor: surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AmzRadius.medium),
+          borderSide: BorderSide(color: border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AmzRadius.medium),
+          borderSide: BorderSide(color: border),
+        ),
+      ),
+      // Cyan discret pour l'élément sélectionné, dans les deux thèmes.
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surface,
+        indicatorColor: primary.withAlpha(40),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: surface,
+        indicatorColor: primary.withAlpha(40),
+      ),
     );
   }
 }

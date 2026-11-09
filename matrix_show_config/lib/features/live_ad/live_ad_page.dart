@@ -519,157 +519,171 @@ class _LiveAdPageState extends State<LiveAdPage> {
 
                     const SizedBox(height: 12),
 
-                    TextFormField(
-                      controller: text,
-                      enabled: loaded && !busy,
-                      maxLength: 100,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[\x20-\x7E]'),
-                        ),
-                      ],
-                      onChanged: (_) => changed(),
-                      validator: (v) =>
-                      v == null || v.isEmpty
-                          ? 'live_required'.tr
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: 'live_text'.tr,
-                        helperText: 'live_ascii'.tr,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Color(0xff000000 | rgb),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outline,
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text('live_text'.tr,
+                                style: Theme.of(context).textTheme.titleLarge),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: text,
+                              enabled: loaded && !busy,
+                              maxLength: 100,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[\x20-\x7E]'),
+                                ),
+                              ],
+                              onChanged: (_) => changed(),
+                              validator: (v) =>
+                              v == null || v.isEmpty
+                                  ? 'live_required'.tr
+                                  : null,
+                              decoration: InputDecoration(
+                                labelText: 'live_text'.tr,
+                                helperText: 'live_ascii'.tr,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton(
-                          onPressed:
-                          loaded && !busy ? chooseColor : null,
-                          child: Text('live_color'.tr),
-                        ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 12),
-                    Text('icons_title'.tr),
+                            const SizedBox(height: 12),
 
-                    Wrap(
-                      spacing: 8,
-                      children: List.generate(
-                        pixelIcons.length,
-                            (i) => ChoiceChip(
-                          avatar: i == 0
-                              ? const Icon(Icons.block, size: 20)
-                              : CustomPaint(
-                            size: const Size(20, 20),
-                            painter: _IconPainter(
-                              i,
-                              Theme.of(context)
-                                  .colorScheme
-                                  .onSurface,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Color(0xff000000 | rgb),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outline,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                OutlinedButton(
+                                  onPressed:
+                                  loaded && !busy ? chooseColor : null,
+                                  child: Text('live_color'.tr),
+                                ),
+                              ],
                             ),
-                          ),
-                          label: Text(('icon_$i').tr),
-                          selected: iconId == i,
-                          showCheckmark: false,
-                          onSelected: loaded && !busy
-                              ? (_) {
-                            iconId = i;
-                            changed();
-                          }
-                              : null,
+
+                            const SizedBox(height: 12),
+                            Text('icons_title'.tr, style: Theme.of(context).textTheme.titleMedium),
+
+                            Wrap(
+                              spacing: 8,
+                              children: List.generate(
+                                pixelIcons.length,
+                                    (i) => ChoiceChip(
+                                  avatar: i == 0
+                                      ? const Icon(Icons.block, size: 20)
+                                      : CustomPaint(
+                                    size: const Size(20, 20),
+                                    painter: _IconPainter(
+                                      i,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                  label: Text(('icon_$i').tr),
+                                  selected: iconId == i,
+                                  showCheckmark: false,
+                                  onSelected: loaded && !busy
+                                      ? (_) {
+                                    iconId = i;
+                                    changed();
+                                  }
+                                      : null,
+                                ),
+                              ),
+                            ),
+
+                            Text('icons_note'.tr, style: Theme.of(context).textTheme.bodySmall),
+                            const SizedBox(height: 12),
+                            Text('effects_title'.tr, style: Theme.of(context).textTheme.titleMedium),
+
+                            Wrap(
+                              spacing: 8,
+                              children: List.generate(
+                                3,
+                                    (i) => ChoiceChip(
+                                  label: Text(('effect_$i').tr),
+                                  selected: effectId == i,
+                                  onSelected: loaded && !busy
+                                      ? (_) {
+                                    effectId = i;
+                                    changed();
+                                  }
+                                      : null,
+                                ),
+                              ),
+                            ),
+
+                            Text('effects_notice'.tr, style: Theme.of(context).textTheme.bodySmall),
+                            const SizedBox(height: 12),
+
+                            Text('${'live_speed'.tr}: $interval ms'),
+
+                            Slider(
+                              value: interval
+                                  .toDouble()
+                                  .clamp(20, 500)
+                                  .toDouble(),
+                              min: 20,
+                              max: 500,
+                              divisions: 48,
+                              onChanged: loaded && !busy
+                                  ? (v) {
+                                interval = v.round();
+                                changed();
+                              }
+                                  : null,
+                            ),
+
+                            Text('${'live_brightness'.tr}: $brightness / 20'),
+
+                            Slider(
+                              value: brightness
+                                  .toDouble()
+                                  .clamp(1, 20)
+                                  .toDouble(),
+                              min: 1,
+                              max: 20,
+                              divisions: 19,
+                              onChanged: loaded && !busy
+                                  ? (v) {
+                                brightness = v.round();
+                                changed();
+                              }
+                                  : null,
+                            ),
+
+                            SwitchListTile(
+                              value: scroll,
+                              onChanged: loaded && !busy
+                                  ? (v) {
+                                scroll = v;
+                                changed();
+                              }
+                                  : null,
+                              title: Text('live_scroll'.tr),
+                            ),
+
+                            Text('live_static_note'.tr),
+                          ],
                         ),
                       ),
                     ),
-
-                    Text('icons_note'.tr),
-                    const SizedBox(height: 12),
-                    Text('effects_title'.tr),
-
-                    Wrap(
-                      spacing: 8,
-                      children: List.generate(
-                        3,
-                            (i) => ChoiceChip(
-                          label: Text(('effect_$i').tr),
-                          selected: effectId == i,
-                          onSelected: loaded && !busy
-                              ? (_) {
-                            effectId = i;
-                            changed();
-                          }
-                              : null,
-                        ),
-                      ),
-                    ),
-
-                    Text('effects_notice'.tr),
-                    const SizedBox(height: 12),
-
-                    Text('${'live_speed'.tr}: $interval ms'),
-
-                    Slider(
-                      value: interval
-                          .toDouble()
-                          .clamp(20, 500)
-                          .toDouble(),
-                      min: 20,
-                      max: 500,
-                      divisions: 48,
-                      onChanged: loaded && !busy
-                          ? (v) {
-                        interval = v.round();
-                        changed();
-                      }
-                          : null,
-                    ),
-
-                    Text('${'live_brightness'.tr}: $brightness / 20'),
-
-                    Slider(
-                      value: brightness
-                          .toDouble()
-                          .clamp(1, 20)
-                          .toDouble(),
-                      min: 1,
-                      max: 20,
-                      divisions: 19,
-                      onChanged: loaded && !busy
-                          ? (v) {
-                        brightness = v.round();
-                        changed();
-                      }
-                          : null,
-                    ),
-
-                    SwitchListTile(
-                      value: scroll,
-                      onChanged: loaded && !busy
-                          ? (v) {
-                        scroll = v;
-                        changed();
-                      }
-                          : null,
-                      title: Text('live_scroll'.tr),
-                    ),
-
-                    Text('live_static_note'.tr),
                     const SizedBox(height: 8),
 
                     Text(
