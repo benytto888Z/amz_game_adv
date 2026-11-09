@@ -32,6 +32,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/logoico.jpeg
+    - assets/images/amz_pixel_logo.png
 
   fonts:
     - family: Inter

@@ -16,8 +16,8 @@ class AmzPixelSplashScreen extends StatefulWidget {
   const AmzPixelSplashScreen({
     super.key,
     required this.onFinished,
-    this.duration = const Duration(milliseconds: 4600),
-    this.logoAsset = 'assets/images/logoico.jpeg',
+    this.duration = const Duration(milliseconds: 5000),
+    this.logoAsset = 'assets/images/amz_pixel_logo.png',
     this.tagline = 'LE FUTUR DE L’AFFICHAGE CONNECTÉ',
     this.loadingLabel = 'INITIALISATION',
     this.showCompanySignature = true,
