@@ -286,6 +286,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
+                    t('DIFFUSION · PLAYLIST', 'PLAYBACK · PLAYLIST'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     t('Playlist publicitaire', 'Advertising playlist'),
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
@@ -367,7 +375,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
                             for (int i = 0; i < messages.length; i++)
                               ListTile(
                                 contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(child: Text('${i + 1}')),
+                                leading: CircleAvatar(
+                                  backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(35),
+                                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                                  child: Text('${i + 1}'),
+                                ),
                                 title: Text(messages[i]),
                               ),
                         ],

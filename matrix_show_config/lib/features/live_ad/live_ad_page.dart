@@ -445,6 +445,9 @@ class _LiveAdPageState extends State<LiveAdPage> {
               final ready =
                   widget.gameState.value == 'pret' && advertisingMode;
               final can = online && ready && loaded && !busy;
+              final actionTextColor = Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.secondary
+                  : Theme.of(context).colorScheme.primary;
 
               return Form(
                 key: form,
@@ -463,6 +466,12 @@ class _LiveAdPageState extends State<LiveAdPage> {
                     const SizedBox(height: 20),
                     Card(
                       margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.secondary.withAlpha(100),
+                        ),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -470,7 +479,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
                           children: [
                             Row(children: [
                               Icon(Icons.grid_on, size: 20,
-                                  color: Theme.of(context).colorScheme.primary),
+                                  color: Theme.of(context).colorScheme.secondary),
                               const SizedBox(width: 8),
                               Expanded(child: Text('preview_local'.tr,
                                   style: Theme.of(context).textTheme.titleMedium)),
@@ -610,15 +619,27 @@ class _LiveAdPageState extends State<LiveAdPage> {
 
                             Text('icons_note'.tr, style: Theme.of(context).textTheme.bodySmall),
                             const SizedBox(height: 12),
-                            Text('effects_title'.tr, style: Theme.of(context).textTheme.titleMedium),
-
+                            Row(children: [
+                              Icon(Icons.auto_awesome_outlined,
+                                  color: Theme.of(context).colorScheme.secondary, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('effects_title'.tr,
+                                  style: Theme.of(context).textTheme.titleMedium)),
+                            ]),
+                            const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
+                              runSpacing: 8,
                               children: List.generate(
                                 3,
                                     (i) => ChoiceChip(
+                                  avatar: Icon(
+                                    [Icons.block, Icons.flash_on_outlined, Icons.palette_outlined][i],
+                                    size: 18,
+                                  ),
                                   label: Text(('effect_$i').tr),
                                   selected: effectId == i,
+                                  selectedColor: Theme.of(context).colorScheme.primary.withAlpha(38),
                                   onSelected: loaded && !busy
                                       ? (_) {
                                     effectId = i;
@@ -628,7 +649,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
                                 ),
                               ),
                             ),
-
+                            const SizedBox(height: 8),
                             Text('effects_notice'.tr, style: Theme.of(context).textTheme.bodySmall),
                             const SizedBox(height: 12),
 
@@ -703,6 +724,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
                     OutlinedButton(
                       onPressed:
                       can && !dirty ? saveForRestart : null,
+                      style: OutlinedButton.styleFrom(foregroundColor: actionTextColor),
                       child: Text('pub_store_button'.tr),
                     ),
 
@@ -713,6 +735,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
                           onPressed: can && !dirty
                               ? () => action('play')
                               : null,
+                          style: OutlinedButton.styleFrom(foregroundColor: actionTextColor),
                           child: Text('live_play'.tr),
                         ),
                         OutlinedButton(
@@ -721,12 +744,14 @@ class _LiveAdPageState extends State<LiveAdPage> {
                               playback != 'stop'
                               ? () => action('pause')
                               : null,
+                          style: OutlinedButton.styleFrom(foregroundColor: actionTextColor),
                           child: Text('live_pause'.tr),
                         ),
                         OutlinedButton(
                           onPressed: can && !dirty
                               ? () => action('stop')
                               : null,
+                          style: OutlinedButton.styleFrom(foregroundColor: actionTextColor),
                           child: Text('live_stop'.tr),
                         ),
                       ],
@@ -734,6 +759,7 @@ class _LiveAdPageState extends State<LiveAdPage> {
 
                     OutlinedButton(
                       onPressed: online && !busy ? load : null,
+                      style: OutlinedButton.styleFrom(foregroundColor: actionTextColor),
                       child: Text('live_reload'.tr),
                     ),
 

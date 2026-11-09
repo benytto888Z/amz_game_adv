@@ -248,6 +248,14 @@ class _SchedulePageState extends State<SchedulePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
+                    t('DIFFUSION · PROGRAMMATION', 'PLAYBACK · SCHEDULE'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     t('Programmation', 'Schedule'),
                     style: theme.textTheme.headlineSmall,
                   ),
@@ -271,9 +279,20 @@ class _SchedulePageState extends State<SchedulePage> {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.access_time,
-                                color: theme.colorScheme.primary,
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.access_time,
+                                  color: theme.colorScheme.secondary,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(

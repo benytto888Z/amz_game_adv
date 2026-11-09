@@ -41,7 +41,7 @@ class _MatrixPreviewState extends State<MatrixPreview> {
   }
   @override void dispose(){timer?.cancel();effectTimer?.cancel();super.dispose();}
   @override Widget build(BuildContext context)=>AspectRatio(aspectRatio:4,
-      child:CustomPaint(painter:_MatrixPainter(widget.text,widget.effectId==2?const [0xff0000,0xff8000,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff][phase]:widget.rgb,x,widget.iconId,widget.effectId==1 && phase==1,Theme.of(context).colorScheme.surfaceContainerHighest)));
+      child:CustomPaint(painter:_MatrixPainter(widget.text,widget.effectId==2?const [0xff0000,0xff8000,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff][phase]:widget.rgb,x,widget.iconId,widget.effectId==1 && phase==1,const Color(0xFF1A2832))));
 }
 
 class _MatrixPainter extends CustomPainter {

@@ -29,6 +29,11 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
   String? feedback;
   bool success = false;
 
+  Color _highlight(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? const Color(0xFFFFD76A)
+      : const Color(0xFF805000);
+
   @override
   void initState() {
     super.initState();
@@ -280,6 +285,9 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
               ),
             OutlinedButton.icon(
               onPressed: () => _chooseCustom(isEasy),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _highlight(context),
+              ),
               icon: const Icon(Icons.palette_outlined),
               label: Text('game_custom_color'.tr),
             ),
@@ -428,6 +436,9 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
                     ),
                     OutlinedButton(
                       onPressed: connected && !busy ? _load : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _highlight(context),
+                      ),
                       child: Text('game_reload'.tr),
                     ),
                     if (feedback != null)
@@ -436,9 +447,11 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
                         child: Text(
                           feedback!,
                           style: TextStyle(
-                            color: success
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.error,
+                            color: !success
+                                ? theme.colorScheme.error
+                                : feedback == 'game_loaded'.tr
+                                ? _highlight(context)
+                                : theme.colorScheme.primary,
                           ),
                         ),
                       ),

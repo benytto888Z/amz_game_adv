@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/amz_light_theme.dart';
 import 'core/theme/amz_dark_theme.dart';
+import 'core/theme/amz_liquid_theme.dart';
 import 'core/design_system/spacing.dart';
 import 'core/design_system/components/amz_section_card.dart';
 import 'core/responsive/breakpoints.dart';
@@ -14,6 +15,10 @@ import 'services/phone_clock.dart';
 import 'services/panel_service.dart';
 import 'features/game_settings/game_settings_page.dart';
 import 'features/live_ad/live_ad_page.dart';
+
+// ThemeMode.system est conservé comme clé de migration pour l'ancien choix
+// « Système » ; il représente désormais le thème indépendant « Liquide ».
+final ValueNotifier<ThemeMode> appearance = ValueNotifier(ThemeMode.system);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +34,7 @@ Future<void> main() async {
     // Un problème de stockage ne doit pas bloquer le démarrage.
   }
 
+  appearance.value = initial;
   runApp(AmzApp(initialTheme: initial));
 }
 
@@ -36,6 +42,9 @@ class Texts extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'fr_FR': {
+      'dash_welcome': 'Bienvenue sur',
+      'dash_hero': 'Votre panneau, sous contrôle.',
+      'dash_open_studio': 'Ouvrir le Studio LED',
       'dash_kicker': 'VUE D’ENSEMBLE',
       'dash_intro': 'Suivez l’état confirmé de votre panneau et choisissez son mode d’affichage.',
       'dash_game_mode': 'Jeu sélectionné',
@@ -216,7 +225,7 @@ class Texts extends Translations {
       'theme': 'Apparence',
       'light': 'Clair',
       'dark': 'Sombre',
-      'system': 'Système',
+      'system': 'Liquide',
       'theme_save_error': 'Impossible de sauvegarder le thème.',
       'invalid_ip': 'Adresse IPv4 invalide.',
       'connection_error':
@@ -237,6 +246,9 @@ class Texts extends Translations {
     },
 
     'en_US': {
+      'dash_welcome': 'Welcome to',
+      'dash_hero': 'Your panel, under control.',
+      'dash_open_studio': 'Open LED Studio',
       'dash_kicker': 'OVERVIEW',
       'dash_intro': 'Follow your panel’s confirmed status and select its display mode.',
       'dash_game_mode': 'Selected game',
@@ -416,7 +428,7 @@ class Texts extends Translations {
       'theme': 'Appearance',
       'light': 'Light',
       'dark': 'Dark',
-      'system': 'System',
+      'system': 'Liquid',
       'theme_save_error': 'Could not save the theme.',
       'invalid_ip': 'Invalid IPv4 address.',
       'connection_error':
@@ -553,7 +565,7 @@ class AppController extends GetxController {
 
   void selectTheme(ThemeMode value) {
     selectedTheme.value = value;
-    Get.changeThemeMode(value);
+    appearance.value = value;
 
     pendingThemeSave = pendingThemeSave.then((_) async {
       try {
@@ -581,16 +593,19 @@ class AmzApp extends StatelessWidget {
   final ThemeMode initialTheme;
 
   @override
-  Widget build(BuildContext context) => GetMaterialApp(
-    title: 'AMZ-IT',
-    debugShowCheckedModeBanner: false,
-    translations: Texts(),
-    locale: const Locale('fr', 'FR'),
-    fallbackLocale: const Locale('en', 'US'),
-    theme: amzLightTheme,
-    darkTheme: amzDarkTheme,
-    themeMode: initialTheme,
-    home: Home(initialTheme: initialTheme),
+  Widget build(BuildContext context) => ValueListenableBuilder<ThemeMode>(
+    valueListenable: appearance,
+    builder: (context, selected, _) => GetMaterialApp(
+      title: 'AMZ-IT',
+      debugShowCheckedModeBanner: false,
+      translations: Texts(),
+      locale: const Locale('fr', 'FR'),
+      fallbackLocale: const Locale('en', 'US'),
+      theme: selected == ThemeMode.system ? amzLiquidTheme : amzLightTheme,
+      darkTheme: amzDarkTheme,
+      themeMode: selected == ThemeMode.dark ? ThemeMode.dark : ThemeMode.light,
+      home: Home(initialTheme: initialTheme),
+    ),
   );
 }
 
@@ -628,19 +643,23 @@ class _HomeState extends State<Home> {
 
     final destinations = [
       NavigationDestination(
-        icon: const Icon(Icons.wifi),
+        icon: const Icon(Icons.wifi_outlined),
+        selectedIcon: const Icon(Icons.wifi),
         label: 'connect'.tr,
       ),
       NavigationDestination(
         icon: const Icon(Icons.dashboard_outlined),
+        selectedIcon: const Icon(Icons.dashboard),
         label: 'dashboard'.tr,
       ),
       NavigationDestination(
         icon: const Icon(Icons.auto_awesome_outlined),
+        selectedIcon: const Icon(Icons.auto_awesome),
         label: 'studio'.tr,
       ),
       NavigationDestination(
-        icon: const Icon(Icons.tune),
+        icon: const Icon(Icons.settings_outlined),
+        selectedIcon: const Icon(Icons.settings),
         label: 'settings'.tr,
       ),
     ];
@@ -652,7 +671,7 @@ class _HomeState extends State<Home> {
             maxWidth: AmzBreakpoints.contentMax,
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AmzSpacing.lg),
+            padding: EdgeInsets.all(wide ? AmzSpacing.lg : AmzSpacing.md),
             child: pages()[c.selected.value],
           ),
         ),
@@ -664,7 +683,7 @@ class _HomeState extends State<Home> {
         title: Row(
           children: [
             Text('AMZ', style: Theme.of(context).textTheme.titleLarge),
-            Text('-IT', style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            Text(' PIXEL', style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: Theme.of(context).colorScheme.primary,
             )),
             const SizedBox(width: 12),
@@ -694,6 +713,7 @@ class _HomeState extends State<Home> {
                 .map(
                   (d) => NavigationRailDestination(
                 icon: d.icon,
+                selectedIcon: d.selectedIcon,
                 label: Text(d.label),
               ),
             )
@@ -729,7 +749,8 @@ class _HomeState extends State<Home> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('connection_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
-          color: colors.primary, letterSpacing: 1.4,
+          color: theme.brightness == Brightness.dark ? colors.secondary : colors.primary,
+          letterSpacing: 1.4,
         )),
         const SizedBox(height: 8),
         Text('connect_title'.tr, style: theme.textTheme.headlineMedium),
@@ -746,13 +767,28 @@ class _HomeState extends State<Home> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(children: [
-                  Icon(Icons.wifi_tethering, color: colors.primary),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withAlpha(30),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.wifi_tethering, color: colors.primary),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(child: Text('connection_steps'.tr,
                       style: theme.textTheme.titleLarge)),
                 ]),
                 const SizedBox(height: 16),
-                Text('instructions'.tr, style: theme.textTheme.bodyMedium),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.outline),
+                  ),
+                  child: Text('instructions'.tr, style: theme.textTheme.bodyMedium),
+                ),
                 const SizedBox(height: 20),
                 TextFormField(
                   initialValue: AppController.panneauNom,
@@ -789,7 +825,11 @@ class _HomeState extends State<Home> {
               children: [
                 Row(children: [
                   Icon(online ? Icons.check_circle_outline : Icons.link_off,
-                      color: online ? colors.primary : colors.onSurfaceVariant),
+                      color: online
+                          ? (theme.brightness == Brightness.dark
+                          ? const Color(0xFF22C55E)
+                          : const Color(0xFF15803D))
+                          : colors.onSurfaceVariant),
                   const SizedBox(width: 12),
                   Expanded(child: Text((online ? 'connected' : 'disconnected').tr,
                       style: theme.textTheme.titleMedium)),
@@ -878,7 +918,8 @@ class _HomeState extends State<Home> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('dash_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
-          color: colors.primary, letterSpacing: 1.4,
+          color: theme.brightness == Brightness.dark ? colors.secondary : colors.primary,
+          letterSpacing: 1.4,
         )),
         const SizedBox(height: 8),
         Text('dashboard'.tr, style: theme.textTheme.headlineMedium),
@@ -886,7 +927,39 @@ class _HomeState extends State<Home> {
         Text('dash_intro'.tr, style: theme.textTheme.bodyMedium?.copyWith(
           color: colors.onSurfaceVariant,
         )),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [colors.surface, Color.alphaBlend(colors.primary.withAlpha(24), colors.surface)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.outline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('dash_welcome'.tr, style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 6),
+              Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                Text('AMZ ', style: theme.textTheme.headlineMedium),
+                Text('PIXEL', style: theme.textTheme.headlineMedium?.copyWith(color: colors.primary)),
+              ]),
+              const SizedBox(height: 8),
+              Text('dash_hero'.tr, style: theme.textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => c.selected.value = 2,
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: Text('dash_open_studio'.tr),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         LayoutBuilder(builder: (context, constraints) {
           final columns = constraints.maxWidth >= 680 ? 3 :
           constraints.maxWidth >= 420 ? 2 : 1;
@@ -986,7 +1059,17 @@ class _HomeState extends State<Home> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: colors.primary, size: 26),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.outline),
+              ),
+              child: Icon(icon,
+                  color: icon == Icons.edit_note ? colors.secondary : colors.primary,
+                  size: 26),
+            ),
             const SizedBox(height: 16),
             Text(title, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
@@ -1008,7 +1091,8 @@ class _HomeState extends State<Home> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('studio_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
-          color: colors.primary, letterSpacing: 1.4,
+          color: theme.brightness == Brightness.dark ? colors.secondary : colors.primary,
+          letterSpacing: 1.4,
         )),
         const SizedBox(height: 8),
         Text('studio_title'.tr, style: theme.textTheme.headlineMedium),
@@ -1023,7 +1107,11 @@ class _HomeState extends State<Home> {
             padding: const EdgeInsets.all(20),
             child: Row(children: [
               Icon(available ? Icons.check_circle_outline : Icons.info_outline,
-                  color: available ? colors.primary : colors.onSurfaceVariant),
+                  color: available
+                      ? (theme.brightness == Brightness.dark
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFF15803D))
+                      : colors.onSurfaceVariant),
               const SizedBox(width: 12),
               Expanded(child: Text(capability.tr, style: theme.textTheme.bodyMedium)),
             ]),
@@ -1082,7 +1170,8 @@ class _HomeState extends State<Home> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('settings_kicker'.tr, style: theme.textTheme.labelSmall?.copyWith(
-          color: colors.primary, letterSpacing: 1.4,
+          color: theme.brightness == Brightness.dark ? colors.secondary : colors.primary,
+          letterSpacing: 1.4,
         )),
         const SizedBox(height: 8),
         Text('settings'.tr, style: theme.textTheme.headlineMedium),
@@ -1103,7 +1192,45 @@ class _HomeState extends State<Home> {
                   const SizedBox(width: 12),
                   Expanded(child: Text('theme'.tr, style: theme.textTheme.titleLarge)),
                 ]),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    for (final item in <(ThemeMode, Color, String)>[
+                      (ThemeMode.system, const Color(0xFFE9F5FC), 'system'.tr),
+                      (ThemeMode.light, const Color(0xFFF5F6F8), 'light'.tr),
+                      (ThemeMode.dark, const Color(0xFF171B21), 'dark'.tr),
+                    ])
+                      Semantics(
+                        label: item.$3,
+                        selected: c.selectedTheme.value == item.$1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: c.selectedTheme.value == item.$1
+                                  ? colors.primary : colors.outline,
+                            ),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Container(
+                              width: 18, height: 18,
+                              decoration: BoxDecoration(
+                                color: item.$2, shape: BoxShape.circle,
+                                border: Border.all(color: colors.outline),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(item.$3, style: theme.textTheme.labelMedium),
+                          ]),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<ThemeMode>(
                   initialValue: c.selectedTheme.value,
                   decoration: InputDecoration(labelText: 'theme'.tr),
