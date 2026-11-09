@@ -378,7 +378,6 @@ class _LiveAdPageState extends State<LiveAdPage> {
           success = true;
           feedback = 'pub_store_success'.tr;
         });
-
       }
     } catch (e) {
       if (mounted) {
@@ -452,27 +451,54 @@ class _LiveAdPageState extends State<LiveAdPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('live_warning'.tr),
-                    const SizedBox(height: 12),
-
                     Text(
-                      'preview_local'.tr,
-                      style: Theme.of(context).textTheme.titleSmall,
+                      'live_title'.tr,
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
-
-                    MatrixPreview(
-                      text: text.text,
-                      rgb: rgb,
-                      scrolling: scroll,
-                      intervalMs: interval,
-                      iconId: iconId,
-                      effectId: effectId,
+                    Text('live_warning'.tr,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        )),
+                    const SizedBox(height: 20),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.grid_on, size: 20,
+                                  color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('preview_local'.tr,
+                                  style: Theme.of(context).textTheme.titleMedium)),
+                            ]),
+                            const SizedBox(height: 16),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                color: const Color(0xFF080E17),
+                                child: MatrixPreview(
+                                  text: text.text,
+                                  rgb: rgb,
+                                  scrolling: scroll,
+                                  intervalMs: interval,
+                                  iconId: iconId,
+                                  effectId: effectId,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text('preview_notice'.tr,
+                                style: Theme.of(context).textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
                     ),
-
-                    const SizedBox(height: 8),
-                    Text('preview_notice'.tr),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
 
                     if (!online)
                       Text('live_offline'.tr)
