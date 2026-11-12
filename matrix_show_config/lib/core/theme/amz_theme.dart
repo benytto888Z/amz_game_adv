@@ -17,7 +17,8 @@ abstract final class AmzTheme {
     final error = dark ? AmzColors.darkError : AmzColors.lightError;
     final base = ColorScheme.fromSeed(seedColor: primary, brightness: brightness);
     final scheme = base.copyWith(
-      primary: primary, onPrimary: dark ? AmzColors.darkBackground : AmzColors.lightSurface,
+      // Noir sur rouge vif pour améliorer la lisibilité des boutons sombres.
+      primary: primary, onPrimary: dark ? Colors.black : Colors.white,
       secondary: accent, surface: surface, onSurface: text,
       onSurfaceVariant: secondaryText, outline: border, outlineVariant: border,
       surfaceContainerLow: surface, surfaceContainer: elevated,
@@ -34,9 +35,18 @@ abstract final class AmzTheme {
       inputDecorationTheme: InputDecorationTheme(
           filled: true, fillColor: surface,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: border)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: border))),
-      navigationBarTheme: NavigationBarThemeData(backgroundColor: surface, indicatorColor: scheme.secondaryContainer),
-      navigationRailTheme: NavigationRailThemeData(backgroundColor: surface, indicatorColor: scheme.secondaryContainer),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: border)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AmzRadius.medium), borderSide: BorderSide(color: primary, width: 2))),
+      filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: scheme.onPrimary,
+          minimumSize: const Size(0, 48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AmzRadius.medium)))),
+      // Rouge discret pour l'élément de navigation sélectionné.
+      navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: surface, indicatorColor: primary.withAlpha(40)),
+      navigationRailTheme: NavigationRailThemeData(
+          backgroundColor: surface, indicatorColor: primary.withAlpha(40)),
     );
   }
 }
