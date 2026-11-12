@@ -96,6 +96,7 @@ enum Etat {
 };
 
 constexpr uint32_t DUREE_CAPTURE_MS = 3000;
+constexpr uint32_t DUREE_RESULTAT_GAGNANT_MS = 4000;
 uint32_t debutCapture = 0;
 Etat etat = PRET;
 HorlogeCampagne horlogeCampagne;
@@ -2090,7 +2091,11 @@ void loop() {
   actualiserPlaylist(now);
   actualiserPub(now);
 
+  // Conserver le chrono gagnant 4 secondes pendant la melodie.
+  // Le smiley conserve uniquement ses 3 secondes de capture habituelles.
   if (etat == VICTOIRE &&
+      (modeJeu == SMILEY ||
+       uint32_t(now - debutMelodie) >= DUREE_RESULTAT_GAGNANT_MS) &&
       uint32_t(now - dernierScroll) >= SCROLL_INTERVAL_MS) {
     dernierScroll = now;
 
