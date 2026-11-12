@@ -33,6 +33,7 @@ struct Bouton {
 Bouton jeu{PIN_JEU}, mode{PIN_MODE};
 enum Etat { PRET, EN_COURS, RESULTAT, CAPTURE, VICTOIRE };
 constexpr uint32_t DUREE_CAPTURE_MS = 3000;
+constexpr uint32_t DUREE_RESULTAT_GAGNANT_MS = 4000;
 uint32_t debutCapture = 0;
 Etat etat=PRET;
 enum ModeJeu { FACILE, DIFFICILE, SMILEY };
@@ -382,7 +383,11 @@ void loop() {
    ++prochaineNote;
   }
  }
- if(etat==VICTOIRE && uint32_t(now-dernierScroll)>=70){
+ // Pour le chrono, garder le temps gagne visible 4 s pendant la melodie.
+ // Le smiley a deja sa propre capture de 3 s et defile sans attente supplementaire.
+ if(etat==VICTOIRE &&
+    (modeJeu==SMILEY || uint32_t(now-debutMelodie)>=DUREE_RESULTAT_GAGNANT_MS) &&
+    uint32_t(now-dernierScroll)>=70){
   dernierScroll=now; matrix.fillScreen(0); matrix.setTextColor(matrix.Color(255,180,0));
   matrix.setCursor(scrollX,0); matrix.print(message); matrix.show();
   --scrollX;
